@@ -1,0 +1,2030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Le Manoir Hanté - French Numbers</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; color: white; font-family: 'Courier New', Courier, monospace; }
+        canvas { display: block; }
+        
+        /* --- TITLE SCREEN STYLES --- */
+        #title-screen, #difficulty-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, #1a0000, #000000);
+            display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+            padding-left: 10%; z-index: 100; box-sizing: border-box;
+        }
+        #difficulty-screen { display: none; z-index: 101; }
+        
+        #title-screen::before {
+            content: 'EST-CE QUE JE SUIS BEAU? EST-CE QUE JE SUIS BEAU?'; position: absolute;
+            top: 30%; left: 0; width: 100%; color: rgba(139, 0, 0, 0.1); font-size: 60px;
+            line-height: 1.5; text-align: center; z-index: -1; pointer-events: none; overflow: hidden; white-space: nowrap;
+        }
+        #game-title, .diff-title { font-size: 80px; color: #8b0000; text-shadow: 3px 3px 15px #ff0000; margin-bottom: 20px; letter-spacing: 5px; }
+        .diff-title { font-size: 60px; color: #dcd8d3; text-shadow: none; }
+        
+        .menu-btn { font-size: 35px; margin: 15px 0; padding: 10px 0; background-color: transparent; color: #aaa; border: none; cursor: pointer; transition: 0.3s; font-family: 'Courier New', Courier, monospace; text-align: left; }
+        .menu-btn:hover { color: #fff; text-shadow: 0 0 10px #fff; transform: translateX(10px); }
+        .btn-hard:hover { color: #e74c3c; text-shadow: 0 0 10px #e74c3c; }
+        
+        /* --- ANALOG HORROR MONSTER MENU ANIMATIONS --- */
+        #monster-container {
+            position: absolute; right: 10%; bottom: 80px; width: 350px; height: 95%;
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+            pointer-events: none; transition: transform 0.1s ease-out;
+        }
+        #monster-glow { position: absolute; bottom: 30%; width: 500px; height: 500px; background: radial-gradient(circle, rgba(255, 0, 0, 0.15) 0%, transparent 70%); z-index: 1; }
+        
+        .limb { position: absolute; background-color: #010101; z-index: 3; box-shadow: 0 0 15px rgba(0,0,0,0.9); }
+        .arm { width: 16px; height: 300px; bottom: 5%; border-radius: 5px; }
+        #arm-left { left: 90px; transform: rotate(15deg); transform-origin: top center; }
+        #arm-right { right: 90px; transform: rotate(-15deg); transform-origin: top center; }
+        .leg { width: 24px; height: 250px; bottom: -180px; border-radius: 8px; }
+        #leg-left { left: 120px; transform: rotate(8deg); }
+        #leg-right { right: 120px; transform: rotate(-8deg); }
+        
+        .arm::after {
+            content: ''; position: absolute; bottom: -40px; left: -8px; width: 32px; height: 50px;
+            background-image: repeating-linear-gradient(90deg, transparent 0, transparent 4px, #010101 4px, #010101 8px);
+        }
+
+        #monster-spikes { display: none; }
+
+        /* STARK WHITE, HEAVILY DISTORTED SKULL */
+        #monster-head {
+            position: absolute; bottom: 48%; width: 150px; height: 190px;
+            background: radial-gradient(circle at 50% 40%, #ffffff 0%, #aaaaaa 65%, #000000 100%);
+            border-radius: 45% 55% 40% 60% / 55% 45% 60% 40%; 
+            z-index: 6; box-shadow: inset 0 -25px 50px rgba(0,0,0,1); transform-style: preserve-3d;
+            animation: headTwitch 0.05s infinite;
+        }
+        @keyframes headTwitch { 
+            0% { transform: rotate(2deg) translate(3px, 1px) scale(1); } 
+            50% { transform: rotate(-3deg) translate(-2px, -3px) scale(1.03); } 
+            100% { transform: rotate(1deg) translate(0, 3px) scale(0.97); } 
+        }
+
+        /* MASSIVE, UNEVEN VOID EYES */
+        .hollow-eye {
+            position: absolute; background-color: #000; border-radius: 50%;
+            box-shadow: inset 0 0 20px #000, 0 0 15px rgba(0,0,0,0.9);
+            display: flex; justify-content: center; align-items: center; overflow: hidden;
+        }
+        #he-left { top: 40px; left: 10px; width: 60px; height: 60px; transform: rotate(15deg); } 
+        #he-right { top: 30px; right: 10px; width: 50px; height: 70px; transform: rotate(-10deg); }
+
+        /* PIERCING, GLOWING PINPOINT PUPILS */
+        .pupil { display: block; width: 4px; height: 4px; background: #fff; border-radius: 50%; box-shadow: 0 0 15px 5px #fff; animation: pupil-jitter 0.02s infinite alternate; z-index: 2;}
+        @keyframes pupil-jitter { 0% { transform: translate(-2px, 3px); } 100% { transform: translate(3px, -2px); } }
+
+        #monster-nose { display: none; }
+
+        /* IMPOSSIBLY WIDE, JAGGED SMILE */
+        #monster-mouth {
+            position: absolute; bottom: 10px; left: -15%; width: 130%; height: 70px;
+            background-color: #000;
+            border-radius: 10% 10% 80% 80% / 20% 20% 90% 90%;
+            box-shadow: inset 0 20px 30px rgba(0,0,0,1), 0 0 20px #000;
+            overflow: hidden; display: flex; justify-content: center;
+        }
+        /* Unsettling tiny teeth */
+        #monster-mouth::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 18px;
+            background: repeating-linear-gradient(90deg, #999 0, #999 4px, #000 4px, #000 12px);
+        }
+        #monster-mouth::after {
+            content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 18px;
+            background: repeating-linear-gradient(90deg, #999 0, #999 4px, #000 4px, #000 12px);
+        }
+
+        #monster-neck {
+            position: absolute; bottom: 40%; width: 35px; height: 80px; background: linear-gradient(to right, #000 0%, #1a1a1a 50%, #000 100%); z-index: 5;
+            background-image: repeating-radial-gradient(ellipse at center, transparent 0, transparent 8px, rgba(0,0,0,0.8) 9px, rgba(0,0,0,0.9) 10px); background-size: 100% 20px;
+        }
+        #monster-body { width: 150px; height: 45%; background-color: #010101; border-radius: 60px 60px 0 0; box-shadow: 0 0 50px rgba(0,0,0,1); z-index: 4; }
+        .tendril { position: absolute; bottom: 50%; width: 3px; height: 80px; background-color: #010101; z-index: 3; border-radius: 50%; }
+        #t1 { left: 130px; height: 140px; transform: rotate(15deg); } #t2 { right: 130px; height: 110px; transform: rotate(-10deg); }
+
+        .glitch-active { animation: monster-tweak 0.15s infinite; filter: contrast(200%) brightness(1.5) hue-rotate(45deg); }
+        .glitch-heavy { animation: monster-tweak 0.05s infinite; filter: contrast(500%) brightness(1.5) invert(10%) sepia(100%) saturate(1000%) hue-rotate(90deg); }
+
+        @keyframes monster-tweak {
+            0% { transform: translate(0,0) scale(1) skew(0deg); opacity: 1; } 10% { transform: translate(-20px, -10px) scale(1.05) skew(5deg); opacity: 0.9; }
+            20% { transform: translate(20px, 15px) scale(0.95) skew(-5deg); opacity: 1; } 30% { transform: translate(-30px, 5px) scale(1.1) rotate(2deg); opacity: 0.7; }
+            40% { transform: translate(25px, -20px) scale(0.9) rotate(-2deg); opacity: 1; } 50% { transform: translate(-5px, 30px) scale(1.05) skew(10deg); opacity: 0.8; }
+            60% { transform: translate(15px, -5px) scale(1.05) skew(-10deg); } 70% { transform: translate(-25px, 10px) scale(1.1) invert(60%); }
+            80% { transform: translate(30px, -15px) scale(0.85) skew(15deg); } 90% { transform: translate(-10px, -25px) scale(1.05) rotate(4deg); }
+            100% { transform: translate(0,0) scale(1); }
+        }
+
+        /* --- UI STYLES --- */
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
+        
+        #minimap-container { position: absolute; bottom: 20px; right: 20px; width: 200px; display: none; flex-direction: column; border: 3px solid #555; border-radius: 10px; background-color: rgba(0, 0, 0, 0.7); overflow: hidden; }
+        #minimap-alert { width: 100%; text-align: center; background: #500; color: #fff; font-weight: bold; padding: 5px 0; display: none; animation: flashAlert 0.4s infinite alternate; font-size: 14px; text-shadow: 1px 1px 2px #000; box-sizing: border-box; border-bottom: 2px solid #f00; }
+        @keyframes flashAlert { 0% { background: #800; color: #fff; } 100% { background: #f00; color: #ff0; } }
+        #minimap-canvas-wrapper { width: 200px; height: 200px; background-color: rgba(0, 0, 0, 0.7); overflow: hidden; }
+        #minimap { width: 100%; height: 100%; }
+        #map-battery-container { width: 100%; height: 12px; background: #222; border-top: 3px solid #555; box-sizing: border-box; display: none; }
+        #map-battery-fill { width: 100%; height: 100%; background: #2ecc71; transition: width 0.1s linear; }
+
+        #instructions { position: absolute; top: 10px; left: 10px; background-color: rgba(0, 0, 0, 0.8); padding: 15px; border-radius: 8px; font-size: 15px; line-height: 1.5; color: #eee; border: 2px solid #555; }
+        #instructions strong { color: #f1c40f; font-size: 18px; }
+        #view-indicator { position: absolute; top: 10px; right: 10px; background-color: rgba(200, 0, 0, 0.7); padding: 10px; border-radius: 8px; font-size: 16px; font-weight: bold; }
+        #inventory-display { position: absolute; bottom: 60px; left: 20px; font-size: 18px; color: #00ffff; font-weight: bold; text-shadow: 1px 1px 2px #000; }
+        
+        #ball-counter { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background-color: rgba(200, 200, 0, 0.8); color: black; padding: 10px 20px; border-radius: 8px; font-size: 24px; font-weight: bold; text-shadow: 1px 1px 2px #fff; border: 2px solid #ffcc00;}
+
+        #trap-alert { position: absolute; top: 30%; left: 50%; transform: translateX(-50%); font-size: 30px; font-weight: bold; color: red; text-shadow: 0 0 10px #000; display: none; z-index: 100;}
+        #trap-bar-container { position: absolute; top: 40%; left: 50%; transform: translateX(-50%); width: 300px; height: 20px; background: rgba(0,0,0,0.8); border: 2px solid #555; display: none; border-radius: 5px; overflow: hidden; z-index: 100;}
+        #trap-bar-fill { width: 0%; height: 100%; background: #e74c3c; }
+
+        #quiz-modal {
+            display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background-color: #222; border: 4px solid #d4af37; padding: 30px; border-radius: 15px; text-align: center; pointer-events: auto; width: 400px; box-shadow: 0 0 30px rgba(212, 175, 55, 0.5); z-index: 50;
+        }
+        #quiz-modal h2 { margin-top: 0; color: #d4af37; }
+        .option-btn { display: block; width: 100%; margin: 10px 0; padding: 15px; background-color: #444; color: white; border: 2px solid #666; border-radius: 8px; font-size: 18px; cursor: pointer; transition: background 0.2s; }
+        .option-btn:hover { background-color: #666; }
+        
+        #message-box { position: absolute; top: 20%; left: 50%; transform: translateX(-50%); font-size: 24px; font-weight: bold; color: red; text-shadow: 2px 2px 0 #000; display: none; }
+        #stamina-container { position: absolute; bottom: 20px; left: 20px; width: 250px; height: 25px; border: 3px solid #555; background-color: rgba(0, 0, 0, 0.7); border-radius: 12px; overflow: hidden; }
+        #stamina-bar { width: 100%; height: 100%; background-color: #2ecc71; transition: width 0.1s linear, background-color 0.3s; }
+        #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 8px; height: 8px; background-color: rgba(255, 255, 255, 0.7); border-radius: 50%; pointer-events: none; mix-blend-mode: difference; }
+        #interact-prompt { position: absolute; top: 55%; left: 50%; transform: translate(-50%, -50%); font-size: 20px; font-weight: bold; color: #fff; text-shadow: 2px 2px 0 #000; display: none; pointer-events: none; }
+        #floor-indicator { position: absolute; top: 70px; right: 10px; background-color: rgba(0, 0, 200, 0.7); padding: 10px; border-radius: 8px; font-size: 16px; font-weight: bold; }
+
+        /* --- BASEMENT UI --- */
+        #basement-ui {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 200;
+            flex-direction: column; justify-content: space-between; padding: 20px; box-sizing: border-box;
+        }
+        #basement-top-bar { display: flex; justify-content: space-between; width: 100%; pointer-events: none; }
+        .b-text { font-size: 40px; font-weight: bold; color: white; text-shadow: 2px 2px 5px #000; }
+        #b-power { color: #2ecc71; }
+        #b-controls { display: flex; justify-content: space-between; width: 100%; pointer-events: auto; padding: 0 10%; box-sizing: border-box; margin-bottom: 20px;}
+        .b-btn { background: #333; border: 4px solid #555; color: white; padding: 20px 40px; font-size: 24px; font-weight: bold; border-radius: 10px; cursor: pointer; transition: 0.2s; font-family: 'Courier New', Courier, monospace; }
+        .b-btn:hover { background: #555; }
+        .b-btn.active { background: #e74c3c; border-color: #c0392b; box-shadow: 0 0 20px red; }
+        #cam-btn { background: #2980b9; border-color: #1a5276; width: 250px; }
+        #cam-btn:hover { background: #3498db; }
+        
+        #camera-overlay {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 50, 0, 0.2); pointer-events: auto; z-index: 201;
+            flex-direction: column; align-items: flex-end; padding: 50px; box-sizing: border-box;
+        }
+        .cam-select { background: #222; border: 2px solid #fff; color: white; padding: 15px; margin: 5px 0; font-size: 20px; cursor: pointer; font-family: 'Courier New', Courier, monospace; width: 200px; text-align: right;}
+        .cam-select:hover { background: #444; }
+        .cam-select.active { background: #fff; color: #000; }
+        
+        /* Scanline Overlay for Basement Cameras */
+        .scanlines {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 202;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 6px 100%; display: none;
+        }
+
+        #red-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 0, 0, 0.25); z-index: 150; pointer-events: none; display: none; transition: background-color 0.5s; }
+        #run-flash { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 180px; font-weight: bold; color: #8b0000; text-shadow: 0 0 40px red, 0 0 10px red; display: none; pointer-events: none; z-index: 151; animation: flashWarning 0.5s infinite alternate;}
+        @keyframes flashWarning { 0% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0.3; transform: translate(-50%, -50%) scale(1.1); } }
+        #static-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 40; opacity: 0; mix-blend-mode: screen; }
+
+        /* FISHING MINIGAME UI */
+        #minigame-ui {
+            display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 400px; padding: 20px; background: rgba(0,0,0,0.85); border: 4px solid #555; border-radius: 10px; z-index: 200; pointer-events: auto; user-select: none;
+        }
+        #minigame-ui h3 { color: white; margin-top: 0; text-align: center; }
+        #mg-main-bar { width: 100%; height: 40px; background: #222; border: 2px solid #fff; position: relative; margin-bottom: 20px; overflow: hidden; border-radius: 5px;}
+        #mg-target { position: absolute; top: 5px; width: 20px; height: 30px; background: yellow; border-radius: 5px; pointer-events: none; }
+        #mg-player-bar { position: absolute; top: 0; width: 60px; height: 40px; background: rgba(0, 255, 0, 0.4); border: 2px solid #0f0; box-sizing: border-box; pointer-events: none; }
+        #mg-progress-bg { width: 100%; height: 20px; background: #222; border: 2px solid #fff; position: relative; border-radius: 5px; overflow: hidden; }
+        #mg-progress-fill { height: 100%; width: 50%; background: #e74c3c; transition: width 0.1s, background-color 0.2s; }
+    </style>
+</head>
+<body>
+
+    <div id="title-screen">
+        <h1 id="game-title">LE MANOIR HANTÉ</h1>
+        <button class="menu-btn" id="start-btn">JOUER (Play)</button>
+        <div id="monster-container">
+            <div id="monster-glow"></div>
+            <div class="limb arm" id="arm-left"></div><div class="limb arm" id="arm-right"></div>
+            <div class="limb leg" id="leg-left"></div><div class="limb leg" id="leg-right"></div>
+            <div class="tendril" id="t1"></div><div class="tendril" id="t2"></div>
+            <div id="monster-spikes"></div>
+            <div id="monster-head">
+                <div class="hollow-eye" id="he-left"><div class="pupil"></div></div>
+                <div class="hollow-eye" id="he-right"><div class="pupil"></div></div>
+                <div id="monster-nose"></div>
+                <div id="monster-mouth"></div>
+            </div>
+            <div id="monster-neck"></div>
+            <div id="monster-body"></div>
+        </div>
+    </div>
+
+    <div id="difficulty-screen">
+        <h1 class="diff-title">CHOOSE LEVEL</h1>
+        <button class="menu-btn" onclick="startGame('normal')">NORMAL (Standard Horror)</button>
+        <button class="menu-btn btn-hard" onclick="startGame('hard')">HARD (Traps, Fast, Dark, 2 Monsters!)</button>
+    </div>
+
+    <div id="red-overlay"></div>
+    <div id="run-flash">RUN</div>
+    <div id="static-overlay"></div>
+    <div class="scanlines" id="cam-scanlines"></div>
+
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="ui-layer">
+        <div id="instructions">
+            <strong>Controls:</strong><br>
+            W/S/A/D - Move | SHIFT - Sprint<br>
+            SPACE - Jump | C - Crouch/Slide<br>
+            1/2 - Use Teleport Watch (When found)<br>
+            E - Doors, Hide, Grab/Throw Bricks<br>
+            F - Toggle Flashlight | T - Camera | M - Map
+        </div>
+        <div id="view-indicator">FIRST PERSON VIEW</div>
+        <div id="floor-indicator">Floor: DOWNSTAIRS</div>
+        <div id="ball-counter">Souls: <span id="balls-collected">0</span> / 8</div>
+        <div id="message-box"></div>
+        <div id="crosshair"></div>
+        <div id="interact-prompt">Press [E]</div>
+        <div id="inventory-display"></div>
+        
+        <div id="trap-alert">TRAPPED! SPAM [E] TO ESCAPE!</div>
+        <div id="trap-bar-container"><div id="trap-bar-fill"></div></div>
+        <div id="stamina-container"><div id="stamina-bar"></div></div>
+        
+        <div id="minimap-container">
+            <div id="minimap-alert">⚠ HUMANOID CLOSING IN ⚠</div>
+            <div id="minimap-canvas-wrapper"><canvas id="minimap"></canvas></div>
+            <div id="map-battery-container"><div id="map-battery-fill"></div></div>
+        </div>
+    </div>
+
+    <div id="basement-ui">
+        <div id="basement-top-bar">
+            <div class="b-text" id="b-time">12 AM</div>
+            <div class="b-text" id="b-power">Power: 100%</div>
+        </div>
+        <div id="b-controls">
+            <button class="b-btn" id="btn-left-door" onclick="toggleBasementDoor('left')">DOOR L</button>
+            <button class="b-btn" id="cam-btn" onclick="toggleCameras()">CAMERAS</button>
+            <button class="b-btn" id="btn-right-door" onclick="toggleBasementDoor('right')">DOOR R</button>
+        </div>
+    </div>
+
+    <div id="camera-overlay">
+        <button class="cam-select active" id="cbtn-0" onclick="switchCam(0)">CAM 1 (Stage)</button>
+        <button class="cam-select" id="cbtn-1" onclick="switchCam(1)">CAM 2 (Left Hall)</button>
+        <button class="cam-select" id="cbtn-2" onclick="switchCam(2)">CAM 3 (Right Hall)</button>
+    </div>
+
+    <div id="minigame-ui">
+        <h3>HOLD SPACEBAR OR CLICK TO HOLD BREATH!</h3>
+        <div id="mg-main-bar">
+            <div id="mg-player-bar"></div>
+            <div id="mg-target"></div>
+        </div>
+        <div id="mg-progress-bg"><div id="mg-progress-fill"></div></div>
+    </div>
+
+    <div id="quiz-modal">
+        <h2 id="question-text">Question</h2>
+        <div id="options-container"></div>
+    </div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const minimapCanvas = document.getElementById('minimap');
+    const miniCtx = minimapCanvas.getContext('2d');
+    const minimapAlert = document.getElementById('minimap-alert');
+    const quizModal = document.getElementById('quiz-modal');
+    const questionText = document.getElementById('question-text');
+    const optionsContainer = document.getElementById('options-container');
+    const viewIndicator = document.getElementById('view-indicator');
+    const floorIndicator = document.getElementById('floor-indicator');
+    const titleScreen = document.getElementById('title-screen');
+    const diffScreen = document.getElementById('difficulty-screen');
+    const uiLayer = document.getElementById('ui-layer');
+    const monsterCont = document.getElementById('monster-container');
+    const monsterHead = document.getElementById('monster-head');
+    const monsterSpikes = document.getElementById('monster-spikes');
+    const pupils = document.querySelectorAll('.pupil');
+    const staticOverlay = document.getElementById('static-overlay');
+    const trapAlert = document.getElementById('trap-alert');
+    const trapBarCont = document.getElementById('trap-bar-container');
+    const trapBarFill = document.getElementById('trap-bar-fill');
+    const inventoryDisplay = document.getElementById('inventory-display');
+    const mapBatteryContainer = document.getElementById('map-battery-container');
+    const mapBatteryFill = document.getElementById('map-battery-fill');
+    const ballsCollectedText = document.getElementById('balls-collected');
+    const basementUI = document.getElementById('basement-ui');
+    const cameraOverlay = document.getElementById('camera-overlay');
+    const camScanlines = document.getElementById('cam-scanlines');
+
+    function tryPointerLock() {
+        try { let p = canvas.requestPointerLock(); if(p && p.catch) p.catch(e => {}); } catch(e) {}
+    }
+
+    const nCanvas = document.createElement('canvas'); nCanvas.width = 128; nCanvas.height = 128; const nCtx = nCanvas.getContext('2d');
+    const imgData = nCtx.createImageData(128, 128);
+    for (let i = 0; i < imgData.data.length; i += 4) { let v = Math.random() * 255; imgData.data[i] = v; imgData.data[i+1] = v; imgData.data[i+2] = v; imgData.data[i+3] = 120; }
+    nCtx.putImageData(imgData, 0, 0); staticOverlay.style.backgroundImage = `url(${nCanvas.toDataURL()})`;
+
+    const TILE_SIZE = 60;
+    const FPS = 60;
+    
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resize); resize();
+
+    // EXPANDED MAPS (0 = Downstairs, 1 = Upstairs, 2 = LONG ENDING CHASE HALLWAY)
+    const maps = [
+        [ // FLOOR 0 - DOWNSTAIRS
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,4,0,1],
+            [1,0,4,0,1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,1,1,0,1,0,1,1,1,0,1],
+            [1,0,0,0,2,0,1,0,0,0,0,0,0,0,1,0,2,0,1,0,0,0,1,0,2,0,1,0,0,0,1],
+            [1,1,1,1,1,0,1,0,0,0,0,0,0,0,1,0,1,0,1,0,0,0,1,0,1,0,1,1,1,1,1],
+            [1,0,0,0,1,0,1,1,1,2,1,1,1,0,1,0,1,0,1,1,1,2,1,0,1,0,0,0,0,0,1],
+            [1,0,0,0,2,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,1],
+            [1,0,0,0,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,0,0,0,1,0,1],
+            [1,1,2,1,1,0,0,0,1,0,1,0,0,0,0,0,0,0,1,0,1,4,0,0,1,0,4,0,1,0,1],
+            [1,0,0,0,1,0,0,0,2,0,2,0,0,0,0,0,0,0,2,0,1,0,0,0,2,0,0,0,1,0,1],
+            [1,0,4,0,1,0,0,0,1,0,1,0,0,0,0,0,0,0,1,0,1,0,0,0,1,1,1,1,1,0,1],
+            [1,1,1,1,1,1,1,1,1,0,1,1,1,1,2,1,1,1,1,0,1,1,1,1,1,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,1,1,1,1,1,1,1,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1],
+            [1,0,1,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,4,1,0,0,0,0,0,1,0,1],
+            [1,0,1,0,0,0,0,0,0,0,0,2,0,0,0,2,0,0,0,0,0,0,1,0,0,0,0,0,2,0,1],
+            [1,0,1,1,1,1,1,1,1,1,1,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,1,0,1,1,1,1,1],
+            [1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,1,0,0,0,1],
+            [1,0,4,0,0,0,2,0,0,0,4,0,0,0,0,0,2,0,0,0,4,0,0,0,1,0,2,0,0,0,1],
+            [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,1],
+            [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
+            [1,1,1,0,0,0,1,4,0,0,1,0,0,0,1,4,0,0,1,0,0,0,1,4,0,0,1,0,0,4,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ],
+        [ // FLOOR 1 - UPSTAIRS
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,1,1,1,1,1,2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1],
+            [1,0,1,0,0,0,4,1,0,0,0,1,0,0,0,0,1,4,0,0,0,1,1,0,0,0,0,0,1,0,1],
+            [1,0,1,0,0,0,0,1,0,0,0,1,0,0,0,0,1,0,0,0,0,1,1,0,0,4,0,0,1,0,1],
+            [1,0,1,1,2,1,1,1,0,0,0,1,0,0,0,0,1,1,2,1,1,1,1,0,0,0,0,0,1,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+            [1,0,1,1,1,1,1,1,0,0,0,1,1,2,1,1,0,0,0,1,1,1,1,1,1,2,1,1,1,0,1],
+            [1,0,1,4,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1,0,0,0,0,0,1,0,1],
+            [1,0,1,0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,0,2,0,0,1,0,0,0,0,0,1,0,1],
+            [1,0,1,0,0,0,0,1,0,0,0,1,1,1,1,1,0,0,0,1,0,4,1,1,1,1,1,1,1,0,1],
+            [1,0,1,1,1,1,1,1,0,0,0,1,1,1,1,1,0,0,0,1,1,1,1,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,1,1,2,1,1,1,1,1,0,0,0,1,1,1,1,1,2,1,1,1,1,1,1,1,1,0,1],
+            [1,0,1,4,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,4,1,0,0,0,0,0,1,0,1],
+            [1,0,1,0,0,0,0,0,0,0,0,2,0,0,0,2,0,0,0,0,0,0,1,0,0,0,0,0,2,0,1],
+            [1,0,1,1,1,1,2,1,1,1,1,1,0,0,0,1,1,1,1,1,2,1,1,1,1,1,1,1,1,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,0,1],
+            [1,0,0,4,0,0,1,0,0,4,0,0,1,0,0,4,0,0,1,0,0,4,0,0,1,0,0,0,1,0,1],
+            [1,0,1,1,1,2,1,1,1,2,1,1,1,2,1,1,1,2,1,1,1,2,1,1,1,2,1,1,1,0,1],
+            [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,1], 
+            [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1], 
+            [1,1,1,0,0,0,1,4,0,0,1,0,0,0,1,4,0,0,1,0,0,0,1,4,0,0,1,0,0,4,1], 
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ]
+    ];
+    
+    // --- NEW ENDING: THE LONG CHASE HALLWAY ---
+    const chaseMap = [];
+    for(let r=0; r<100; r++) {
+        if(r === 0) chaseMap.push([1,1,1,1,1]);
+        else if (r === 98) chaseMap.push([1,1,7,1,1]); // 7 IS THE GLOWING ESCAPE DOOR
+        else if (r === 99) chaseMap.push([1,1,1,1,1]);
+        else chaseMap.push([1,0,0,0,1]); // Endless 3-wide hallway
+    }
+    maps.push(chaseMap); 
+
+    let currentMap = 0; 
+    let MAP_COLS = maps[currentMap][0].length; 
+    let MAP_ROWS = maps[currentMap].length;
+
+    const questions = [
+        { q: "What is 15 in French?", options: ["quinze", "cinq", "cinquante", "quatorze"], answer: 0 },
+        { q: "What is 23 in French?", options: ["vingt-trois", "trente-deux", "douze", "vingt"], answer: 0 },
+        { q: "What is 40 in French?", options: ["quarante", "quatre", "quatorze", "quatre-vingts"], answer: 0 },
+        { q: "What is 70 in French?", options: ["soixante-dix", "septante", "soixante", "sept"], answer: 0 },
+        { q: "What is 100 in French?", options: ["cent", "mille", "dix", "cinquante"], answer: 0 },
+        { q: "What is 50 in French?", options: ["cinquante", "cinq", "quinze", "cent"], answer: 0 },
+        { q: "What is 80 in French?", options: ["quatre-vingts", "huitante", "huit", "quatre-huit"], answer: 0 },
+        { q: "What is 99 in French?", options: ["quatre-vingt-dix-neuf", "nonante-neuf", "neuf-neuf", "cent-moins-un"], answer: 0 }
+    ];
+
+    let gameState = 'menu'; 
+    let difficulty = 'normal'; 
+    let viewMode = 0; let birdEyeZoom = 1.0; let flashlightOn = true; 
+    
+    // KEYS
+    const keys = { w: false, a: false, s: false, d: false, arrowup: false, arrowdown: false, arrowleft: false, arrowright: false, shift: false, i: false, o: false, space: false, c: false };
+    let lastETime = 0, lastTTime = 0, lastMTime = 0, lastFTime = 0;
+    let showMinimap = false;
+
+    // --- Audio System ---
+    let audioCtx = null;
+    let heartbeatLFO = null, horrorGainNode = null;
+    let screechOsc = null, screechGain = null; 
+    const carefreeAudio = new Audio('https://incompetech.com/music/royalty-free/mp3-royaltyfree/Carefree.mp3');
+    const springAudio = new Audio('https://incompetech.com/music/royalty-free/mp3-royaltyfree/Monkeys%20Spinning%20Monkeys.mp3');
+    let currentQuizSong = null; let melodyInterval = null;
+
+    function initAudio() {
+        if(audioCtx) return; 
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const mainGain = audioCtx.createGain(); mainGain.gain.value = 0.8; mainGain.connect(audioCtx.destination);
+        horrorGainNode = audioCtx.createGain(); horrorGainNode.gain.value = 1; horrorGainNode.connect(mainGain);
+
+        const notes = [329.63, 261.63, 220.00, 261.63, 329.63, 440.00, 329.63, 261.63]; let noteIdx = 0;
+        melodyInterval = setInterval(() => {
+            if (gameState !== 'play' && gameState !== 'pre-rampage' && gameState !== 'basement') return;
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'sine'; osc.frequency.setValueAtTime(notes[noteIdx], audioCtx.currentTime);
+            gain.gain.setValueAtTime(0, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.05); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+            osc.connect(gain); gain.connect(horrorGainNode); osc.start(); osc.stop(audioCtx.currentTime + 1);
+            noteIdx = (noteIdx + 1) % notes.length;
+        }, 600); 
+
+        screechOsc = audioCtx.createOscillator(); screechOsc.type = 'sine'; screechOsc.frequency.value = 8000;
+        screechGain = audioCtx.createGain(); screechGain.gain.value = 0; screechOsc.connect(screechGain); screechGain.connect(horrorGainNode);
+        
+        const pulseOsc = audioCtx.createOscillator(); const pulseGain = audioCtx.createGain(); pulseOsc.type = 'sine'; pulseOsc.frequency.value = 55;
+        heartbeatLFO = audioCtx.createOscillator(); heartbeatLFO.type = 'sine'; heartbeatLFO.frequency.value = 0.8;
+        const lfoGain = audioCtx.createGain(); lfoGain.gain.value = 1.0; heartbeatLFO.connect(pulseGain.gain);
+        pulseOsc.connect(pulseGain); pulseGain.connect(horrorGainNode); 
+        
+        pulseOsc.start(); heartbeatLFO.start(); screechOsc.start();
+    }
+
+    function playAngrySound() {
+        if(!audioCtx) return;
+        const osc = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.type = 'sawtooth'; osc2.type = 'square';
+        osc.frequency.setValueAtTime(150, audioCtx.currentTime); osc2.frequency.setValueAtTime(140, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.8, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.0);
+        osc.connect(gain); osc2.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); osc2.start(); osc.stop(audioCtx.currentTime + 1.0); osc2.stop(audioCtx.currentTime + 1.0);
+    }
+
+    function playOminousSound() {
+        if(!audioCtx) return;
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.type = 'sine'; osc.frequency.setValueAtTime(40, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(1.5, audioCtx.currentTime + 2.0);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 5.0);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(audioCtx.currentTime + 5.0);
+    }
+
+    // PURE DEMONIC ANALOG HORROR SCREAM - LONG DURATION
+    function playJumpscareSound(duration = 4.0, pitchMult = 1.0) {
+        if(!audioCtx) return;
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(2.5, audioCtx.currentTime + 0.02); 
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        gainNode.connect(audioCtx.destination);
+
+        const roarOsc = audioCtx.createOscillator();
+        roarOsc.type = 'square'; roarOsc.frequency.setValueAtTime(400 * pitchMult, audioCtx.currentTime);
+        roarOsc.frequency.exponentialRampToValueAtTime(20 * pitchMult, audioCtx.currentTime + 0.8); 
+        roarOsc.connect(gainNode);
+
+        const shriekOsc1 = audioCtx.createOscillator();
+        shriekOsc1.type = 'sawtooth'; shriekOsc1.frequency.setValueAtTime(1500 * pitchMult, audioCtx.currentTime);
+        shriekOsc1.frequency.exponentialRampToValueAtTime(60 * pitchMult, audioCtx.currentTime + duration * 0.6);
+        shriekOsc1.connect(gainNode);
+
+        const shriekOsc2 = audioCtx.createOscillator();
+        shriekOsc2.type = 'sawtooth'; shriekOsc2.frequency.setValueAtTime(2200 * pitchMult, audioCtx.currentTime);
+        shriekOsc2.frequency.exponentialRampToValueAtTime(90 * pitchMult, audioCtx.currentTime + duration * 0.8);
+        shriekOsc2.connect(gainNode);
+
+        const bufferSize = audioCtx.sampleRate * duration; 
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; }
+        const noise = audioCtx.createBufferSource(); noise.buffer = buffer;
+        
+        const noiseFilter = audioCtx.createBiquadFilter();
+        noiseFilter.type = 'lowpass'; noiseFilter.frequency.setValueAtTime(8000, audioCtx.currentTime);
+        noiseFilter.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + duration);
+        
+        const noiseGain = audioCtx.createGain(); noiseGain.gain.value = 3.0;
+        noise.connect(noiseFilter); noiseFilter.connect(noiseGain); noiseGain.connect(gainNode);
+
+        roarOsc.start(); roarOsc.stop(audioCtx.currentTime + duration);
+        shriekOsc1.start(); shriekOsc1.stop(audioCtx.currentTime + duration);
+        shriekOsc2.start(); shriekOsc2.stop(audioCtx.currentTime + duration);
+        noise.start(); noise.stop(audioCtx.currentTime + duration);
+    }
+    
+    function playClatterSound() {
+        if(!audioCtx) return;
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.type = 'square'; osc.frequency.setValueAtTime(400, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.5, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+    }
+
+    function playFootstep() {
+        if(!audioCtx) return;
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.type = 'sine'; osc.frequency.setValueAtTime(60, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.8, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+        osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+    }
+
+    // --- Game Objects & State Variables ---
+    const player = { x: 3 * TILE_SIZE + 30, y: 3 * TILE_SIZE + 30, z: 0, vz: 0, isCrouching: false, radius: 12, speed: 1.5, angle: 0, pitch: 0, isHiding: false, hideTimer: 0, maxHideTime: 300, stamina: 400, maxStamina: 400, inventory: null, isTrapped: false, trapProgress: 0, hasWatch: false };
+    const monster = { x: 20 * TILE_SIZE + 30, y: 12 * TILE_SIZE + 30, radius: 15, speed: 2.25, angle: 0, state: 'wander', wanderTarget: null, pathNode: null, stunTimer: 0 };
+    const spider = { x: -1000, y: -1000, radius: 12, speed: 2.4, angle: 0, state: 'wander', wanderTarget: null, pathNode: null, stunTimer: 0 }; 
+    
+    // NEW: ADVANCED SHADOW STALKER ENTITY
+    const shadowFigure = { active: false, x: 0, y: 0, state: 'inactive', timer: 0, spawnTimer: 60 * 30, behavior: 0 };
+    
+    const watchEntity = { active: false, x: 0, y: 0, map: 0 };
+
+    let balls = []; let currentQuizBall = null; let questionIndex = 0;
+    
+    const activeDoors = [{}, {}, {}]; let bricks = [[], [], []]; let traps = [[], [], []];
+    let obstacles = [[], [], []]; 
+    
+    let thrownBrick = null; let currentTrapIndex = -1; let hardTrackerTimer = 0; let mapBattery = 100;
+    let caughtBy = 'monster'; 
+    
+    let transitionTimer = 0; let transitionType = 'up'; 
+    let jumpscareTimer = 0;
+    
+    let hallucinationTimer = 0; let hallucinationType = 'monster';
+    let isFinaleChase = false;
+    
+    let mgTargetPos = 50, mgTargetVelocity = 0, mgPlayerPos = 10, mgProgress = 50, minigameCooldown = 0, mgClicking = false;
+    
+    let ballsCollected = 0; const MAX_BALLS = 8;
+    
+    // --- Inputs & Menus ---
+    document.getElementById('start-btn').addEventListener('click', () => { titleScreen.style.display = 'none'; diffScreen.style.display = 'flex'; });
+
+    window.startGame = function(level) {
+        difficulty = level; 
+        diffScreen.style.display = 'none'; uiLayer.style.display = 'block'; gameState = 'play';
+        currentMap = 0; MAP_COLS = maps[currentMap][0].length; MAP_ROWS = maps[currentMap].length;
+        floorIndicator.innerText = "Floor: DOWNSTAIRS";
+        ballsCollected = 0; ballsCollectedText.innerText = '0';
+        mapBatteryContainer.style.display = (difficulty === 'hard') ? 'block' : 'none';
+        
+        player.x = 3 * TILE_SIZE + 30; player.y = 3 * TILE_SIZE + 30; player.angle = 0; 
+        player.stamina = player.maxStamina; player.hasWatch = false;
+        player.z = 0; player.vz = 0; player.isCrouching = false;
+        spider.x = -1000; spider.y = -1000; 
+        
+        shadowFigure.active = false;
+        shadowFigure.spawnTimer = FPS * 30; 
+        
+        isFinaleChase = false;
+        questionIndex = 0; 
+        questions.sort(() => Math.random() - 0.5); 
+        
+        obstacles = [[], [], []];
+        
+        spawnWatch();
+        spawnBricks(); initAudio(); relocateMonsters(); tryPointerLock();
+        spawnBalls(); 
+    };
+
+    function spawnWatch() {
+        let valid = false;
+        while(!valid) {
+            const r = Math.floor(Math.random() * maps[0].length), c = Math.floor(Math.random() * maps[0][0].length);
+            if(maps[0][r][c] === 0) { 
+                watchEntity.x = c * TILE_SIZE + 30; 
+                watchEntity.y = r * TILE_SIZE + 30; 
+                watchEntity.active = true; 
+                watchEntity.map = 0;
+                valid = true; 
+            }
+        }
+    }
+
+    canvas.addEventListener('click', () => { if(gameState === 'play' || gameState === 'pre-rampage') tryPointerLock(); });
+
+    document.addEventListener('mousemove', (e) => {
+        if (document.pointerLockElement === canvas && (gameState === 'play' || gameState === 'pre-rampage')) {
+            player.angle += e.movementX * 0.003; player.pitch -= e.movementY * 1.5;
+            player.pitch = Math.max(-300, Math.min(300, player.pitch));
+        }
+    });
+
+    function triggerMenuGlitch() {
+        if(gameState !== 'menu') return; 
+        const isHeavy = Math.random() > 0.7; 
+        if (isHeavy) monsterCont.classList.add('glitch-heavy'); else monsterCont.classList.add('glitch-active');
+        const burstDuration = isHeavy ? (150 + Math.random() * 300) : (50 + Math.random() * 100);
+        setTimeout(() => {
+            if(monsterCont) monsterCont.classList.remove('glitch-heavy', 'glitch-active');
+            const nextDelay = Math.random() > 0.8 ? (10 + Math.random() * 50) : (200 + Math.random() * 800);
+            setTimeout(triggerMenuGlitch, nextDelay);
+        }, burstDuration);
+    }
+    triggerMenuGlitch();
+
+    window.addEventListener('keydown', (e) => {
+        let key = e.key.toLowerCase();
+        if(key === ' ') key = 'space'; 
+        if(key in keys) keys[key] = true;
+        
+        if(key === 'space') mgClicking = true;
+        
+        if(key === 'f' && difficulty === 'hard' && gameState === 'play' && Date.now() - lastFTime > 300) { flashlightOn = !flashlightOn; lastFTime = Date.now(); }
+
+        if(key === 'e' && (gameState === 'play' || gameState === 'pre-rampage') && Date.now() - lastETime > 150) { 
+            if (player.isTrapped) {
+                player.trapProgress += 15;
+                if (player.trapProgress >= 100) {
+                    player.isTrapped = false; traps[currentMap].splice(currentTrapIndex, 1);
+                    trapAlert.style.display = 'none'; trapBarCont.style.display = 'none';
+                }
+            } else { handleInteraction(); }
+            lastETime = Date.now(); 
+        }
+
+        // TELEPORT WATCH LOGIC
+        if(key === '1' && player.hasWatch && currentMap !== 0 && !isFinaleChase && gameState === 'play') {
+            gameState = 'transition'; transitionTimer = 60; transitionType = 'teleport_0'; playOminousSound();
+        }
+        if(key === '2' && player.hasWatch && currentMap !== 1 && !isFinaleChase && gameState === 'play') {
+            gameState = 'transition'; transitionTimer = 60; transitionType = 'teleport_1'; playOminousSound();
+        }
+
+        if(key === 't' && gameState === 'play' && Date.now() - lastTTime > 300 && !isFinaleChase) { viewMode = (viewMode + 1) % 3; lastTTime = Date.now(); }
+        if(key === 'm' && gameState === 'play' && Date.now() - lastMTime > 300 && !isFinaleChase) { 
+            if(difficulty === 'hard' && mapBattery <= 0) return; 
+            showMinimap = !showMinimap; document.getElementById('minimap-container').style.display = showMinimap ? 'flex' : 'none'; lastMTime = Date.now(); 
+        }
+    });
+    window.addEventListener('keyup', (e) => { 
+        let key = e.key.toLowerCase();
+        if(key === ' ') key = 'space';
+        if(key in keys) keys[key] = false; 
+        if(key === 'space') mgClicking = false;
+    });
+
+    // TRIGGER THE LONG CHASE HALLWAY
+    function startChasePhase() {
+        isFinaleChase = true;
+        shadowFigure.active = false; 
+        gameState = 'transition';
+        transitionTimer = 120;
+        transitionType = 'chase';
+        playJumpscareSound(2.0, 0.6); 
+        document.getElementById('run-flash').style.display = 'block';
+        document.getElementById('red-overlay').style.display = 'block';
+        document.getElementById('red-overlay').style.backgroundColor = 'rgba(255, 0, 0, 0.15)';
+        
+        showMinimap = false; document.getElementById('minimap-container').style.display = 'none';
+        viewMode = 0; 
+        player.stamina = player.maxStamina; 
+        player.z = 0; player.vz = 0; player.isCrouching = false;
+        
+        obstacles[2] = [];
+        for(let r=10; r<90; r+=6) { 
+            let type = Math.random() > 0.5 ? 'hurdle' : 'overhang';
+            obstacles[2].push({x: 2 * TILE_SIZE + 30, y: r * TILE_SIZE + 30, type: type});
+        }
+    }
+
+    function isTileSolid(tile, r, c) {
+        if(tile === 1 || tile === 4 || tile === 5 || tile === 6 || tile === 7) return true;
+        if(tile === 2) return !(activeDoors[currentMap][`${r},${c}`] && activeDoors[currentMap][`${r},${c}`].amount >= 0.8);
+        return false;
+    }
+    function isSolid(x, y) {
+        const c = Math.floor(x / TILE_SIZE), r = Math.floor(y / TILE_SIZE);
+        if(c >= 0 && c < MAP_COLS && r >= 0 && r < MAP_ROWS) return isTileSolid(maps[currentMap][r][c], r, c);
+        return true;
+    }
+
+    function spawnBalls() {
+        balls = [];
+        for(let i=0; i<MAX_BALLS; i++) {
+            let valid = false;
+            while(!valid) {
+                let m = Math.floor(Math.random() * 2); 
+                const r = Math.floor(Math.random() * maps[m].length), c = Math.floor(Math.random() * maps[m][0].length);
+                if(maps[m][r][c] === 0) { 
+                    balls.push({ x: c * TILE_SIZE + 30, y: r * TILE_SIZE + 30, radius: 10, active: true, map: m }); 
+                    valid = true; 
+                }
+            }
+        }
+    }
+    
+    function spawnBricks() {
+        bricks = [[], [], []];
+        for(let m=0; m<2; m++) {
+            for(let i=0; i<6; i++) {
+                let valid = false;
+                while(!valid) {
+                    const r = Math.floor(Math.random() * maps[m].length), c = Math.floor(Math.random() * maps[m][0].length);
+                    if(maps[m][r][c] === 0) { bricks[m].push({x: c * TILE_SIZE + 30, y: r * TILE_SIZE + 30}); valid = true; }
+                }
+            }
+        }
+    }
+    
+    function relocateMonsters() {
+        let valid = false; let attempts = 0;
+        while(!valid && attempts < 1000) {
+            const r = Math.floor(Math.random() * MAP_ROWS), c = Math.floor(Math.random() * MAP_COLS);
+            if(maps[currentMap][r] && maps[currentMap][r][c] === 0) {
+                let newX = c * TILE_SIZE + 30, newY = r * TILE_SIZE + 30;
+                if (Math.hypot(player.x - newX, player.y - newY) > 500) {
+                    monster.x = newX; monster.y = newY;
+                    monster.state = 'wander'; monster.wanderTarget = null; monster.pathNode = null; monster.stunTimer = 0;
+                    valid = true;
+                }
+            }
+            attempts++;
+        }
+        
+        if (difficulty === 'hard') {
+            spider.x = monster.x; spider.y = monster.y;
+            spider.state = 'wander'; spider.wanderTarget = null; spider.pathNode = null; spider.stunTimer = 0;
+        }
+    }
+
+    function findSafeSpawn() {
+        let valid = false;
+        while (!valid) {
+            const r = Math.floor(Math.random() * MAP_ROWS), c = Math.floor(Math.random() * MAP_COLS);
+            if (maps[currentMap][r] && maps[currentMap][r][c] === 0) {
+                player.x = c * TILE_SIZE + 30; player.y = r * TILE_SIZE + 30;
+                valid = true;
+            }
+        }
+        relocateMonsters();
+    }
+
+    function handleInteraction() {
+        if(player.isHiding) {
+            player.isHiding = false; player.hideTimer = 0;
+            player.x += Math.cos(player.angle) * TILE_SIZE * 0.8; player.y += Math.sin(player.angle) * TILE_SIZE * 0.8;
+            return;
+        }
+        
+        let interacted = false;
+        const lookX = player.x + Math.cos(player.angle) * 45, lookY = player.y + Math.sin(player.angle) * 45;
+        const col = Math.floor(lookX / TILE_SIZE), row = Math.floor(lookY / TILE_SIZE);
+        
+        if(watchEntity.active && watchEntity.map === currentMap && Math.hypot(player.x - watchEntity.x, player.y - watchEntity.y) < 60) {
+            watchEntity.active = false;
+            player.hasWatch = true;
+            playClatterSound();
+            interacted = true;
+        }
+        
+        if (!interacted && col >= 0 && col < MAP_COLS && row >= 0 && row < MAP_ROWS) {
+            let tile = maps[currentMap][row][col];
+            if(tile === 2) { 
+                let key = `${row},${col}`;
+                if (!activeDoors[currentMap][key]) activeDoors[currentMap][key] = { amount: 0, target: 1 };
+                else activeDoors[currentMap][key].target = activeDoors[currentMap][key].target === 1 ? 0 : 1;
+                interacted = true;
+            } else if (tile === 4) { 
+                player.isHiding = true; player.hideTimer = player.maxHideTime;
+                player.x = col * TILE_SIZE + 30; player.y = row * TILE_SIZE + 30;
+                monster.state = 'wander'; monster.wanderTarget = null; spider.state = 'wander'; spider.wanderTarget = null;
+                let dirs = [{a: 0, dx: 1, dy: 0}, {a: Math.PI/2, dx: 0, dy: 1}, {a: Math.PI, dx: -1, dy: 0}, {a: -Math.PI/2, dx: 0, dy: -1}];
+                for(let d of dirs) { if(!isSolid(player.x + d.dx * TILE_SIZE, player.y + d.dy * TILE_SIZE)) { player.angle = d.a; player.pitch = 0; break; } }
+                interacted = true;
+            }
+        }
+        
+        if (!interacted) {
+            if (player.inventory === 'brick') {
+                player.inventory = null; 
+                thrownBrick = { x: player.x, y: player.y, angle: player.angle, speed: 20, dist: 0 };
+                if (difficulty === 'normal') { monster.state = 'chase'; }
+            } else {
+                for (let i = 0; i < bricks[currentMap].length; i++) {
+                    if (Math.hypot(player.x - bricks[currentMap][i].x, player.y - bricks[currentMap][i].y) < 60) {
+                        player.inventory = 'brick';
+                        bricks[currentMap].splice(i, 1);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    function openDoorIfPresent(x, y) {
+        let c = Math.floor(x / TILE_SIZE), r = Math.floor(y / TILE_SIZE);
+        if (maps[currentMap][r] && maps[currentMap][r][c] === 2) {
+            let key = `${r},${c}`;
+            if (!activeDoors[currentMap][key] || activeDoors[currentMap][key].target === 0) activeDoors[currentMap][key] = { amount: activeDoors[currentMap][key]?.amount || 0, target: 1 };
+        }
+    }
+
+    function hasLineOfSight(x0, y0, x1, y1) {
+        let dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0), sx = (x0 < x1) ? 1 : -1, sy = (y0 < y1) ? 1 : -1, err = dx - dy;
+        let cx = Math.floor(x0 / TILE_SIZE), cy = Math.floor(y0 / TILE_SIZE), targetCX = Math.floor(x1 / TILE_SIZE), targetCY = Math.floor(y1 / TILE_SIZE);
+        while (true) {
+            if (cx === targetCX && cy === targetCY) return true;
+            if (isTileSolid(maps[currentMap][cy][cx], cy, cx) && maps[currentMap][cy][cx] !== 4) return false;
+            let e2 = 2 * err;
+            if (e2 > -dy) { err -= dy; x0 += sx; }
+            if (e2 < dx) { err += dx; y0 += sy; }
+            cx = Math.floor(x0 / TILE_SIZE); cy = Math.floor(y0 / TILE_SIZE);
+        }
+    }
+
+    function getNextPathStep(startX, startY, targetX, targetY) {
+        let sc = Math.floor(startX/TILE_SIZE), sr = Math.floor(startY/TILE_SIZE), tc = Math.floor(targetX/TILE_SIZE), tr = Math.floor(targetY/TILE_SIZE);
+        if (sc === tc && sr === tr) return null; 
+        let queue = [[sc, sr]], cameFrom = {}; cameFrom[`${sc},${sr}`] = null; let found = false;
+        
+        while(queue.length > 0) {
+            let curr = queue.shift();
+            if(curr[0] === tc && curr[1] === tr) { found = true; break; }
+            let neighbors = [[curr[0]+1, curr[1]], [curr[0]-1, curr[1]], [curr[0], curr[1]+1], [curr[0], curr[1]-1]];
+            for(let n of neighbors) {
+                if(n[0]>=0 && n[0]<MAP_COLS && n[1]>=0 && n[1]<MAP_ROWS) {
+                    let tile = maps[currentMap][n[1]][n[0]];
+                    if(!isTileSolid(tile, n[1], n[0]) || tile === 2 || (n[0] === tc && n[1] === tr)) { 
+                        if(cameFrom[`${n[0]},${n[1]}`] === undefined) { cameFrom[`${n[0]},${n[1]}`] = curr; queue.push(n); }
+                    }
+                }
+            }
+        }
+        if(!found) return null;
+        let curr = [tc, tr], path = [];
+        while(curr) { path.push(curr); curr = cameFrom[`${curr[0]},${curr[1]}`]; }
+        path.reverse();
+        if(path.length > 1) return { x: path[1][0]*TILE_SIZE + 30, y: path[1][1]*TILE_SIZE + 30 };
+        return null;
+    }
+
+    function handlePlayerMovement() {
+        for (let key in activeDoors[currentMap]) {
+            let door = activeDoors[currentMap][key];
+            if (door.amount < door.target) door.amount = Math.min(door.target, door.amount + 0.05);
+            else if (door.amount > door.target) door.amount = Math.max(door.target, door.amount - 0.05);
+        }
+
+        const isMoving = keys.w || keys.s || keys.a || keys.d || keys.arrowup || keys.arrowdown || keys.arrowleft || keys.arrowright;
+
+        // PARKOUR Z-AXIS PHYSICS (Jumping and Crouching)
+        if (keys.space && player.z === 0 && !player.isCrouching && !player.isHiding && !player.isTrapped) {
+            player.vz = 12; // Jump power
+            playFootstep(); // Small audio feedback
+        }
+        player.isCrouching = keys.c && player.z === 0;
+
+        player.z += player.vz;
+        if (player.z > 0) {
+            player.vz -= 0.8; // Gravity
+        } else {
+            player.z = 0;
+            player.vz = 0;
+        }
+
+        if(!player.isHiding && !player.isTrapped) {
+            let dx = 0, dy = 0; let currentSpeed = player.speed;
+            
+            if (keys.shift && player.stamina > 0 && isMoving) { currentSpeed = player.speed * 2; player.stamina -= 0.6; } 
+            else if (player.stamina < player.maxStamina) player.stamina += 0.3;
+            
+            if (player.isCrouching) currentSpeed *= 0.6; // Moving slower while crouching
+            
+            player.stamina = Math.max(0, Math.min(player.maxStamina, player.stamina));
+            
+            const sBar = document.getElementById('stamina-bar'); sBar.style.width = (player.stamina / player.maxStamina * 100) + '%';
+            sBar.style.backgroundColor = player.stamina < 20 ? '#e74c3c' : (player.stamina < 50 ? '#f1c40f' : '#2ecc71');
+
+            if (viewMode === 1) {
+                if(keys.w || keys.arrowup) dy -= currentSpeed; if(keys.s || keys.arrowdown) dy += currentSpeed;
+                if(keys.a || keys.arrowleft) dx -= currentSpeed; if(keys.d || keys.arrowright) dx += currentSpeed;
+            } else {
+                if(keys.w || keys.arrowup) { dx += Math.cos(player.angle) * currentSpeed; dy += Math.sin(player.angle) * currentSpeed; }
+                if(keys.s || keys.arrowdown) { dx -= Math.cos(player.angle) * currentSpeed; dy -= Math.sin(player.angle) * currentSpeed; }
+                if(keys.a || keys.arrowleft) { dx -= Math.cos(player.angle + Math.PI/2) * currentSpeed; dy -= Math.sin(player.angle + Math.PI/2) * currentSpeed; }
+                if(keys.d || keys.arrowright) { dx += Math.cos(player.angle + Math.PI/2) * currentSpeed; dy += Math.sin(player.angle + Math.PI/2) * currentSpeed; }
+            }
+
+            // PARKOUR OBSTACLE COLLISION LOGIC
+            let canMoveX = true;
+            let canMoveY = true;
+            for (let obs of obstacles[currentMap]) {
+                if (Math.abs(player.y + dy - obs.y) < player.radius + 10) {
+                    if (obs.type === 'hurdle' && player.z < 30) {
+                        canMoveY = false; canMoveX = false;
+                        player.stamina -= 2; 
+                    }
+                    if (obs.type === 'overhang' && !player.isCrouching) {
+                        canMoveY = false; canMoveX = false;
+                        player.stamina -= 2; 
+                    }
+                }
+            }
+
+            if(dx !== 0 || dy !== 0) {
+                if(canMoveX && !isSolid(player.x + dx + Math.sign(dx)*player.radius, player.y)) player.x += dx;
+                if(canMoveY && !isSolid(player.x, player.y + dy + Math.sign(dy)*player.radius)) player.y += dy;
+            }
+
+            if (difficulty === 'hard' && !isFinaleChase) {
+                for (let i = 0; i < traps[currentMap].length; i++) {
+                    if (Math.hypot(player.x - traps[currentMap][i].x, player.y - traps[currentMap][i].y) < player.radius + 15) {
+                        player.isTrapped = true; player.trapProgress = 0; currentTrapIndex = i;
+                        trapAlert.style.display = 'block'; trapBarCont.style.display = 'block'; trapBarFill.style.width = '0%';
+                        playClatterSound(); monster.state = 'chase'; break;
+                    }
+                }
+            }
+
+            // AUTO WIN IF YOU TOUCH THE FINAL DOOR
+            if (isFinaleChase && Math.abs(player.y - 98*TILE_SIZE) < TILE_SIZE + 20) {
+                gameState = 'win';
+                document.exitPointerLock();
+                uiLayer.style.display = 'none';
+                document.getElementById('red-overlay').style.display = 'none';
+                return;
+            }
+
+            for(let b of balls) {
+                if(b.active && b.map === currentMap && Math.hypot(player.x - b.x, player.y - b.y) < player.radius + b.radius && gameState === 'play') {
+                    triggerQuiz(b); break;
+                }
+            }
+        } else if (player.isHiding) {
+            player.hideTimer--;
+            if (player.stamina < player.maxStamina) player.stamina += 0.5;
+            document.getElementById('stamina-bar').style.width = (player.stamina / player.maxStamina * 100) + '%';
+            if(player.hideTimer <= 0) { player.isHiding = false; player.x += Math.cos(player.angle) * 45; player.y += Math.sin(player.angle) * 45; }
+        } else if (player.isTrapped) {
+            trapBarFill.style.width = player.trapProgress + '%';
+            if (player.trapProgress > 0) player.trapProgress -= 0.5;
+        }
+    }
+
+    function triggerQuiz(touchedBall) {
+        gameState = 'quiz'; currentQuizBall = touchedBall;
+        if(document.pointerLockElement) document.exitPointerLock();
+        currentQuizSong = Math.random() > 0.5 ? carefreeAudio : springAudio;
+        currentQuizSong.currentTime = 0; currentQuizSong.volume = 0.9; currentQuizSong.loop = true;
+        currentQuizSong.play().catch(e => console.log("Audio"));
+        if (audioCtx && horrorGainNode) horrorGainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+        if (melodyInterval) clearInterval(melodyInterval);
+        
+        const qData = questions[questionIndex % questions.length]; questionText.innerText = qData.q;
+        let opts = qData.options.map((opt, i) => ({text: opt, isCorrect: i === qData.answer})).sort(() => Math.random() - 0.5);
+        optionsContainer.innerHTML = '';
+        opts.forEach(opt => { const btn = document.createElement('button'); btn.className = 'option-btn'; btn.innerText = opt.text; btn.onclick = () => answerQuiz(opt.isCorrect); optionsContainer.appendChild(btn); });
+        quizModal.style.display = 'block';
+    }
+
+    function answerQuiz(isCorrect) {
+        if (currentQuizSong) currentQuizSong.pause();
+        if(isCorrect) {
+            ballsCollected++;
+            ballsCollectedText.innerText = ballsCollected;
+            questionIndex++; 
+            if(currentQuizBall) currentQuizBall.active = false; 
+            quizModal.style.display = 'none';
+            
+            if (ballsCollected >= MAX_BALLS) {
+                startChasePhase();
+            } else {
+                gameState = 'play'; tryPointerLock(); 
+                if (audioCtx && horrorGainNode) horrorGainNode.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.5);
+                const notes = [329.63, 261.63, 220.00, 261.63, 329.63, 440.00, 329.63, 261.63]; let noteIdx = 0;
+                melodyInterval = setInterval(() => {
+                    if (gameState !== 'play' && gameState !== 'pre-rampage') return;
+                    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(notes[noteIdx], audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.05); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+                    osc.connect(gain); gain.connect(horrorGainNode); osc.start(); osc.stop(audioCtx.currentTime + 1);
+                    noteIdx = (noteIdx + 1) % notes.length;
+                }, 600);
+            }
+        } else {
+            quizModal.style.display = 'none'; gameState = 'play'; tryPointerLock();
+            playAngrySound(); 
+        }
+    }
+
+    // HIGH CONTRAST, PSYCHOTIC ASYMMETRICAL FACE
+    function drawMonsterFace(cx, cy, scale, isJumpscare = false) {
+        let jawDrop = isJumpscare ? 200*scale : 0; 
+        let faceStretch = isJumpscare ? 120*scale : 0; 
+
+        // Ghostly white, lumpy warped face base
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); 
+        ctx.ellipse(cx, cy - 150*scale + faceStretch/2, 105*scale, 145*scale + faceStretch, 0.05, 0, Math.PI*2); 
+        ctx.fill();
+
+        // Deep, sickly dark vignette shading for depth
+        let faceShade = ctx.createRadialGradient(cx, cy - 160*scale, 10*scale, cx, cy - 140*scale, 155*scale + faceStretch);
+        faceShade.addColorStop(0, 'transparent'); 
+        faceShade.addColorStop(0.5, 'rgba(0,0,0,0.5)');
+        faceShade.addColorStop(1, '#000000');
+        ctx.fillStyle = faceShade; 
+        ctx.beginPath(); ctx.ellipse(cx, cy - 150*scale + faceStretch/2, 105*scale, 145*scale + faceStretch, 0.05, 0, Math.PI*2); ctx.fill();
+
+        // Massive, uneven void eyes
+        ctx.fillStyle = '#000000';
+        
+        ctx.save(); ctx.translate(cx - 45*scale, cy - 180*scale); ctx.rotate(0.15);
+        ctx.beginPath(); ctx.ellipse(0, 0, 48*scale, 52*scale, 0, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+        
+        ctx.save(); ctx.translate(cx + 50*scale, cy - 190*scale); ctx.rotate(-0.2);
+        ctx.beginPath(); ctx.ellipse(0, 0, 38*scale, 58*scale, 0, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+
+        // Piercing, tiny white pupils jittering wildly
+        let jx = (Math.random()-0.5)*8*scale, jy = (Math.random()-0.5)*8*scale;
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowBlur = 20; ctx.shadowColor = '#ffffff';
+        ctx.beginPath(); ctx.arc(cx - 45*scale + jx, cy - 180*scale + jy, 3.5*scale, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx + 50*scale + jx, cy - 190*scale + jy, 3.5*scale, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Dark, sickly eye bags/stains bleeding down
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.beginPath(); ctx.ellipse(cx - 45*scale, cy - 120*scale, 35*scale, 25*scale, -0.2, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(cx + 50*scale, cy - 130*scale, 30*scale, 20*scale, 0.2, 0, Math.PI*2); ctx.fill();
+
+        // Impossibly Wide Creepy Smile
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.moveTo(cx - 120*scale, cy - 80*scale); 
+        ctx.quadraticCurveTo(cx, cy - 130*scale, cx + 120*scale, cy - 90*scale); 
+        ctx.quadraticCurveTo(cx + 70*scale, cy - 20*scale + jawDrop, cx, cy + 10*scale + jawDrop); 
+        ctx.quadraticCurveTo(cx - 70*scale, cy - 10*scale + jawDrop, cx - 120*scale, cy - 80*scale); 
+        ctx.fill();
+
+        // Unsettling, tiny dense teeth
+        ctx.fillStyle = '#cccccc';
+        for(let i=-12; i<=12; i++) {
+            let tx = cx + i*8*scale;
+            let ty = cy - 105*scale + Math.abs(i)*2*scale;
+            ctx.fillRect(tx, ty, 3*scale, 15*scale); 
+            
+            if (isJumpscare) {
+                let by = cy + jawDrop - 15*scale - Math.abs(i)*4*scale;
+                ctx.fillRect(tx, by, 3*scale, 20*scale); 
+            } else {
+                let by = cy - 35*scale - Math.abs(i)*3*scale;
+                ctx.fillRect(tx, by, 3*scale, 12*scale);
+            }
+        }
+    }
+
+    function drawSpiderFace(cx, cy, scale, isJumpscare = false) {
+        ctx.fillStyle = '#dcd3d3'; 
+        ctx.beginPath(); ctx.ellipse(cx, cy - 120*scale, 95*scale, 115*scale, 0, 0, Math.PI*2); ctx.fill();
+        
+        let fShade = ctx.createRadialGradient(cx, cy - 120*scale, 40*scale, cx, cy - 120*scale, 115*scale);
+        fShade.addColorStop(0, 'transparent'); fShade.addColorStop(1, 'rgba(80, 20, 20, 0.7)');
+        ctx.fillStyle = fShade; ctx.beginPath(); ctx.ellipse(cx, cy - 120*scale, 95*scale, 115*scale, 0, 0, Math.PI*2); ctx.fill();
+
+        ctx.fillStyle = '#1a1010';
+        ctx.beginPath(); ctx.arc(cx - 40*scale, cy - 135*scale, 32*scale, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx + 40*scale, cy - 135*scale, 32*scale, 0, Math.PI*2); ctx.fill();
+
+        ctx.fillStyle = '#eeeeee';
+        ctx.beginPath(); ctx.arc(cx - 40*scale, cy - 135*scale, 18*scale, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx + 40*scale, cy - 135*scale, 18*scale, 0, Math.PI*2); ctx.fill();
+
+        ctx.fillStyle = '#000';
+        ctx.beginPath(); ctx.arc(cx - 40*scale, cy - 135*scale, 4*scale, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx + 40*scale, cy - 135*scale, 4*scale, 0, Math.PI*2); ctx.fill();
+
+        ctx.fillStyle = '#0a0505';
+        let mouthDrop = isJumpscare ? 60*scale : 0;
+        ctx.beginPath();
+        ctx.moveTo(cx - 55*scale, cy - 65*scale);
+        ctx.quadraticCurveTo(cx, cy - 85*scale, cx + 55*scale, cy - 65*scale);
+        ctx.quadraticCurveTo(cx + 45*scale, cy - 25*scale + mouthDrop, cx, cy - 15*scale + mouthDrop);
+        ctx.quadraticCurveTo(cx - 45*scale, cy - 25*scale + mouthDrop, cx - 55*scale, cy - 65*scale);
+        ctx.fill();
+
+        ctx.fillStyle = '#aaaaaa';
+        for(let i=0; i<8; i++) {
+            ctx.fillRect(cx - 40*scale + i*11*scale, cy - 70*scale, 4*scale, 10*scale);
+            if (isJumpscare) ctx.fillRect(cx - 35*scale + i*10*scale, cy - 30*scale + mouthDrop, 4*scale, 10*scale);
+        }
+    }
+
+    function drawMap(ctxToDraw, scaleX, scaleY) {
+        for(let r=0; r<MAP_ROWS; r++) {
+            for(let c=0; c<MAP_COLS; c++) {
+                const tile = maps[currentMap][r][c], x = c * TILE_SIZE * scaleX, y = r * TILE_SIZE * scaleY, w = TILE_SIZE * scaleX, h = TILE_SIZE * scaleY;
+                if(tile === 1) { ctxToDraw.fillStyle = '#333'; ctxToDraw.fillRect(x, y, w, h); } 
+                else if(tile === 0 || tile === 3) { ctxToDraw.fillStyle = '#7a644b'; ctxToDraw.fillRect(x, y, w, h); } 
+                else if(tile === 2) { ctxToDraw.fillStyle = `rgba(139, 69, 19, ${1 - (activeDoors[currentMap][`${r},${c}`]?.amount || 0)})`; ctxToDraw.fillRect(x, y, w, h); } 
+                else if(tile === 4) { ctxToDraw.fillStyle = '#2c3e50'; ctxToDraw.fillRect(x, y, w, h); }
+                else if(tile === 5) { ctxToDraw.fillStyle = '#2c5e2c'; ctxToDraw.fillRect(x, y, w, h); } 
+                else if(tile === 6) { ctxToDraw.fillStyle = '#2c2c5e'; ctxToDraw.fillRect(x, y, w, h); } 
+                else if(tile === 7) { ctxToDraw.fillStyle = '#ffffff'; ctxToDraw.fillRect(x, y, w, h); } 
+            }
+        }
+    }
+
+    function drawEntities(ctxToDraw, scaleX, scaleY) {
+        if(watchEntity.active && watchEntity.map === currentMap) {
+            ctxToDraw.fillStyle = 'cyan'; ctxToDraw.beginPath(); ctxToDraw.arc(watchEntity.x * scaleX, watchEntity.y * scaleY, 8 * scaleX, 0, Math.PI*2); ctxToDraw.fill();
+        }
+        for(let b of balls) { 
+            if(b.active && b.map === currentMap) { 
+                ctxToDraw.fillStyle = 'yellow'; ctxToDraw.beginPath(); ctxToDraw.arc(b.x * scaleX, b.y * scaleY, b.radius * scaleX, 0, Math.PI * 2); ctxToDraw.fill(); 
+            } 
+        }
+        for(let b of bricks[currentMap]) { ctxToDraw.fillStyle = '#b22222'; ctxToDraw.fillRect(b.x*scaleX - 5, b.y*scaleY - 3, 10, 6); }
+        if(thrownBrick) { ctxToDraw.fillStyle = '#b22222'; ctxToDraw.fillRect(thrownBrick.x*scaleX - 5, thrownBrick.y*scaleY - 3, 10, 6); }
+        for(let t of traps[currentMap]) { ctxToDraw.fillStyle = '#555'; ctxToDraw.beginPath(); ctxToDraw.arc(t.x*scaleX, t.y*scaleY, 15*scaleX, 0, Math.PI*2); ctxToDraw.fill(); }
+        
+        if(!player.isHiding || viewMode === 1) { ctxToDraw.fillStyle = '#3498db'; ctxToDraw.beginPath(); ctxToDraw.arc(player.x * scaleX, player.y * scaleY, player.radius * scaleX, 0, Math.PI * 2); ctxToDraw.fill(); }
+        
+        // HIGHLIGHT STALKER IN RED ON THE MAP
+        if (shadowFigure.active) { 
+            // Glowing pulsing red aura
+            ctxToDraw.fillStyle = `rgba(255, 0, 0, ${0.4 + Math.abs(Math.sin(Date.now()/200))*0.4})`; 
+            ctxToDraw.beginPath(); ctxToDraw.arc(shadowFigure.x * scaleX, shadowFigure.y * scaleY, 25 * scaleX, 0, Math.PI * 2); ctxToDraw.fill();
+            
+            // Solid red dot
+            ctxToDraw.fillStyle = '#ff0000'; 
+            ctxToDraw.beginPath(); ctxToDraw.arc(shadowFigure.x * scaleX, shadowFigure.y * scaleY, 15 * scaleX, 0, Math.PI * 2); ctxToDraw.fill(); 
+        }
+
+        ctxToDraw.fillStyle = '#111'; 
+        ctxToDraw.beginPath(); ctxToDraw.arc(monster.x * scaleX, monster.y * scaleY, monster.radius * scaleX, 0, Math.PI * 2); ctxToDraw.fill();
+        ctxToDraw.fillStyle = 'white';
+        ctxToDraw.beginPath(); ctxToDraw.arc((monster.x)*scaleX + Math.cos(monster.angle - 0.5)*8*scaleX, (monster.y)*scaleY + Math.sin(monster.angle - 0.5)*8*scaleY, 3*scaleX, 0, Math.PI*2); ctxToDraw.fill();
+        ctxToDraw.beginPath(); ctxToDraw.arc((monster.x)*scaleX + Math.cos(monster.angle + 0.5)*8*scaleX, (monster.y)*scaleY + Math.sin(monster.angle + 0.5)*8*scaleY, 3*scaleX, 0, Math.PI*2); ctxToDraw.fill();
+
+        if (difficulty === 'hard' && !isFinaleChase) {
+            ctxToDraw.fillStyle = '#ff00ff'; 
+            ctxToDraw.beginPath(); ctxToDraw.arc(spider.x * scaleX, spider.y * scaleY, spider.radius * scaleX, 0, Math.PI * 2); ctxToDraw.fill();
+        }
+    }
+
+    // HELPER TO DRAW SHADOW JUMPSCARE
+    function drawShadowJumpscare(cx, cy, objScreenSize = 250) {
+        ctx.fillStyle = '#050505';
+        ctx.beginPath(); ctx.ellipse(cx, cy + objScreenSize*1.2, objScreenSize*0.6, objScreenSize, 0, 0, Math.PI*2); ctx.fill(); // Torso
+        
+        ctx.strokeStyle = '#050505'; ctx.lineWidth = objScreenSize*0.18; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        
+        // Left Arm & Hand
+        ctx.beginPath(); ctx.moveTo(cx - objScreenSize*0.5, cy + objScreenSize*0.4); ctx.lineTo(cx - objScreenSize*1.4, cy + objScreenSize*0.6); ctx.lineTo(cx - objScreenSize*1.8, cy - objScreenSize*0.2); ctx.stroke(); 
+        ctx.beginPath(); ctx.arc(cx - objScreenSize*1.8, cy - objScreenSize*0.2, objScreenSize*0.15, 0, Math.PI*2); ctx.fill();
+        // Claws L
+        ctx.beginPath(); ctx.moveTo(cx - objScreenSize*1.8, cy - objScreenSize*0.2); ctx.lineTo(cx - objScreenSize*2.0, cy - objScreenSize*0.5); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx - objScreenSize*1.8, cy - objScreenSize*0.2); ctx.lineTo(cx - objScreenSize*1.6, cy - objScreenSize*0.5); ctx.stroke();
+
+        // Right Arm & Hand
+        ctx.beginPath(); ctx.moveTo(cx + objScreenSize*0.5, cy + objScreenSize*0.4); ctx.lineTo(cx + objScreenSize*1.4, cy + objScreenSize*0.6); ctx.lineTo(cx + objScreenSize*1.8, cy - objScreenSize*0.2); ctx.stroke(); 
+        ctx.beginPath(); ctx.arc(cx + objScreenSize*1.8, cy - objScreenSize*0.2, objScreenSize*0.15, 0, Math.PI*2); ctx.fill();
+        // Claws R
+        ctx.beginPath(); ctx.moveTo(cx + objScreenSize*1.8, cy - objScreenSize*0.2); ctx.lineTo(cx + objScreenSize*2.0, cy - objScreenSize*0.5); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx + objScreenSize*1.8, cy - objScreenSize*0.2); ctx.lineTo(cx + objScreenSize*1.6, cy - objScreenSize*0.5); ctx.stroke();
+
+        ctx.beginPath(); ctx.ellipse(cx, cy - objScreenSize*0.2, objScreenSize*0.48, objScreenSize*0.64, 0, 0, Math.PI*2); ctx.fill(); // Head
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowBlur = 40; ctx.shadowColor = '#ffffff';
+        ctx.beginPath(); ctx.ellipse(cx - objScreenSize*0.2, cy - objScreenSize*0.3, objScreenSize*0.12, objScreenSize*0.06, 0.2, 0, Math.PI*2); ctx.fill(); // Left eye
+        ctx.beginPath(); ctx.ellipse(cx + objScreenSize*0.2, cy - objScreenSize*0.3, objScreenSize*0.12, objScreenSize*0.06, -0.2, 0, Math.PI*2); ctx.fill(); // Right eye
+        ctx.shadowBlur = 0;
+        
+        // Gaping mouth
+        ctx.fillStyle = '#111111';
+        ctx.beginPath(); ctx.ellipse(cx, cy + objScreenSize*0.2, objScreenSize*0.28, objScreenSize*0.4, 0, 0, Math.PI*2); ctx.fill();
+    }
+
+    function drawMinimap() {
+        minimapAlert.style.display = (shadowFigure.active && !isFinaleChase) ? 'block' : 'none';
+        minimapCanvas.width = MAP_COLS * 10; minimapCanvas.height = MAP_ROWS * 10;
+        miniCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+        drawMap(miniCtx, 10 / TILE_SIZE, 10 / TILE_SIZE); drawEntities(miniCtx, 10 / TILE_SIZE, 10 / TILE_SIZE);
+    }
+
+    function update() {
+        if (gameState === 'win') return;
+
+        let invText = "";
+        if (player.hasWatch) invText += "Watch: [1] Down | [2] Up   ";
+        if (player.inventory === 'brick') invText += "Holding: Brick";
+        inventoryDisplay.innerText = invText;
+
+        const distToPlayer = Math.hypot(player.x - monster.x, player.y - monster.y);
+        const distToSpider = Math.hypot(player.x - spider.x, player.y - spider.y);
+
+        if (gameState === 'transition') {
+            transitionTimer--;
+            if (transitionTimer > 60) {
+                if (!transitionType.startsWith('teleport')) player.pitch -= (transitionType === 'up' ? 2 : -2);
+                if (transitionTimer % 15 === 0 && !transitionType.startsWith('teleport')) playFootstep();
+            } else if (transitionTimer === 60) {
+                if (transitionType === 'chase') {
+                    currentMap = 2; // CHASE MAP
+                    MAP_COLS = maps[currentMap][0].length; MAP_ROWS = maps[currentMap].length;
+                    floorIndicator.innerText = "Floor: THE END";
+                    player.x = 2 * TILE_SIZE + 30; player.y = 4 * TILE_SIZE + 30; 
+                    player.angle = Math.PI / 2; // Facing down the endless hall
+                    
+                    monster.x = 2 * TILE_SIZE + 30; monster.y = 1 * TILE_SIZE + 30; // Behind you
+                    monster.state = 'idle'; // Wait until fade in finishes
+                    monster.speed = 2.45; // Requires player to manage stamina perfectly to survive!
+                    spider.x = -1000; spider.y = -1000;
+                    player.pitch = 0;
+                } else if (transitionType === 'up') {
+                    currentMap = 1; floorIndicator.innerText = "Floor: UPSTAIRS";
+                    for(let r=0; r<MAP_ROWS; r++) for(let c=0; c<MAP_COLS; c++) { if(maps[currentMap][r][c] === 6) { player.x = c*TILE_SIZE+30; player.y = (r-1)*TILE_SIZE+30; player.angle = -Math.PI/2; break; } }
+                    relocateMonsters(); player.pitch = 120;
+                } else if (transitionType === 'down') {
+                    currentMap = 0; floorIndicator.innerText = "Floor: DOWNSTAIRS";
+                    for(let r=0; r<MAP_ROWS; r++) for(let c=0; c<MAP_COLS; c++) { if(maps[currentMap][r][c] === 5) { player.x = c*TILE_SIZE+30; player.y = (r-1)*TILE_SIZE+30; player.angle = -Math.PI/2; break; } }
+                    relocateMonsters(); player.pitch = -120;
+                } else if (transitionType.startsWith('teleport')) {
+                    // It's a teleport
+                }
+            } else if (transitionTimer === 30 && transitionType.startsWith('teleport')) {
+                let targetMap = parseInt(transitionType.split('_')[1]);
+                currentMap = targetMap;
+                floorIndicator.innerText = targetMap === 1 ? "Floor: UPSTAIRS" : "Floor: DOWNSTAIRS";
+                findSafeSpawn();
+            } else {
+                if (transitionType !== 'chase' && !transitionType.startsWith('teleport')) player.pitch -= (transitionType === 'up' ? 2 : -2);
+                if (transitionTimer % 15 === 0 && !transitionType.startsWith('teleport')) playFootstep();
+            }
+            if (transitionTimer <= 0) { 
+                gameState = 'play'; player.pitch = 0; 
+                if (isFinaleChase) {
+                    document.getElementById('run-flash').style.display = 'none';
+                    monster.state = 'chase'; // IT BEGINS
+                }
+            }
+            return; 
+        }
+
+        if(gameState === 'jumpscare') {
+            if(--jumpscareTimer <= 0) {
+                gameState = 'menu'; titleScreen.style.display = 'flex'; uiLayer.style.display = 'none';
+                player.x = 210; player.y = 210; player.isHiding = false; player.stamina = player.maxStamina; player.z = 0;
+                document.getElementById('red-overlay').style.display = 'none'; document.getElementById('run-flash').style.display = 'none';
+                staticOverlay.style.opacity = 0; traps = [[], [], []]; player.isTrapped = false; player.hasWatch = false;
+                trapAlert.style.display = 'none'; trapBarCont.style.display = 'none'; ballsCollected = 0; ballsCollectedText.innerText = '0';
+                shadowFigure.active = false;
+                shadowFigure.spawnTimer = FPS * 30;
+            }
+            return;
+        }
+
+        if ((distToPlayer < 400 || (difficulty === 'hard' && distToSpider < 400)) && (gameState === 'play' || gameState === 'minigame')) {
+            let closest = Math.min(distToPlayer, difficulty === 'hard' ? distToSpider : 9999);
+            staticOverlay.style.opacity = (1 - (closest / 400)) * 0.7; 
+            staticOverlay.style.backgroundPosition = `${Math.floor(Math.random() * 100)}px ${Math.floor(Math.random() * 100)}px`;
+            if (screechGain && audioCtx) screechGain.gain.setTargetAtTime((1 - (closest / 400)) * 0.08, audioCtx.currentTime, 0.2);
+        } else {
+            staticOverlay.style.opacity = 0;
+            if (screechGain && audioCtx) screechGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.2);
+        }
+
+        if(gameState === 'minigame') {
+            if (mgClicking) mgPlayerPos += 1.5; else mgPlayerPos -= 1.5;
+            mgPlayerPos = Math.max(0, Math.min(100 - 15, mgPlayerPos)); 
+            
+            if (Math.random() < 0.08) mgTargetVelocity = (Math.random() - 0.5) * 5;
+            mgTargetPos += mgTargetVelocity;
+            if (mgTargetPos < 0) { mgTargetPos = 0; mgTargetVelocity *= -1; }
+            if (mgTargetPos > 100 - 5) { mgTargetPos = 100 - 5; mgTargetVelocity *= -1; }
+            
+            let overlap = (mgTargetPos + 5 > mgPlayerPos) && (mgTargetPos < mgPlayerPos + 15);
+            if (overlap) { mgProgress += 0.4; document.getElementById('mg-progress-fill').style.backgroundColor = '#2ecc71'; } 
+            else { mgProgress -= 0.3; document.getElementById('mg-progress-fill').style.backgroundColor = '#e74c3c'; }
+            
+            document.getElementById('mg-player-bar').style.left = mgPlayerPos + '%';
+            document.getElementById('mg-target').style.left = mgTargetPos + '%';
+            document.getElementById('mg-progress-fill').style.width = Math.min(100, Math.max(0, mgProgress)) + '%';
+            
+            if (mgProgress >= 100) {
+                gameState = 'play'; document.getElementById('minigame-ui').style.display = 'none';
+                tryPointerLock(); minigameCooldown = 600; relocateMonsters(); 
+            } else if (mgProgress <= 0) {
+                gameState = 'jumpscare'; jumpscareTimer = FPS * 4; caughtBy = 'monster';
+                document.getElementById('minigame-ui').style.display = 'none'; document.getElementById('red-overlay').style.display = 'none';
+                document.getElementById('run-flash').style.display = 'none'; playJumpscareSound();
+            }
+            return;
+        }
+
+        if(gameState !== 'play') return;
+        handlePlayerMovement();
+
+        // --- THE SHADOW STALKER SPAWNING LOGIC (EXACTLY 30 SECONDS, LINE OF SIGHT) ---
+        if (!isFinaleChase) {
+            shadowFigure.spawnTimer--;
+            if (shadowFigure.spawnTimer <= 0 && !shadowFigure.active) {
+                let anglesToTest = [player.angle, player.angle + Math.PI, player.angle + Math.PI/2, player.angle - Math.PI/2];
+                let bestDist = 0;
+                let bestAngle = player.angle;
+                
+                for (let a of anglesToTest) {
+                    let d = 0;
+                    let step = 20;
+                    let hitWall = false;
+                    while (!hitWall && d < 400) { // Check up to 400 distance away
+                        d += step;
+                        let testX = player.x + Math.cos(a) * d;
+                        let testY = player.y + Math.sin(a) * d;
+                        if (isSolid(testX, testY)) {
+                            d -= step; 
+                            hitWall = true;
+                        }
+                    }
+                    if (d > bestDist) {
+                        bestDist = d;
+                        bestAngle = a;
+                    }
+                }
+
+                if (bestDist > 100) { 
+                    shadowFigure.active = true;
+                    shadowFigure.x = player.x + Math.cos(bestAngle) * bestDist;
+                    shadowFigure.y = player.y + Math.sin(bestAngle) * bestDist;
+                    
+                    // CHOOSE RANDOM ADVANCED BEHAVIOR [0, 1, 2, 3]
+                    shadowFigure.behavior = Math.floor(Math.random() * 4);
+                    
+                    if (shadowFigure.behavior === 2) {
+                        shadowFigure.state = 'fake_charge';
+                    } else if (shadowFigure.behavior === 3) {
+                        shadowFigure.state = 'retreating';
+                        shadowFigure.timer = FPS * 3; // 3 seconds of running away
+                    } else {
+                        shadowFigure.state = 'staring';
+                        shadowFigure.timer = FPS * 5; 
+                    }
+                    
+                    shadowFigure.spawnTimer = FPS * 30; // Reset timer back to 30 seconds
+                    playOminousSound();
+                } else {
+                    shadowFigure.spawnTimer = FPS * 2; 
+                }
+            }
+        }
+
+        // --- THE ADVANCED SHADOW STALKER BEHAVIOR ---
+        if (shadowFigure.active && !isFinaleChase) {
+            let angleToStalker = Math.atan2(shadowFigure.y - player.y, shadowFigure.x - player.x);
+            let diff = player.angle - angleToStalker;
+            while(diff < -Math.PI) diff += 2*Math.PI;
+            while(diff > Math.PI) diff -= 2*Math.PI;
+            let isLooking = Math.abs(diff) < 1.0; // Is player roughly looking at it
+            let dist = Math.hypot(player.x - shadowFigure.x, player.y - shadowFigure.y);
+            
+            if (shadowFigure.state === 'staring') {
+                if (shadowFigure.behavior === 0) { // Classic
+                    shadowFigure.timer--;
+                    if (shadowFigure.timer <= 0) {
+                        shadowFigure.state = 'charging';
+                        shadowFigure.timer = FPS * 2.5; 
+                        playAngrySound(); 
+                    }
+                } else if (shadowFigure.behavior === 1) { // Weeping Angel (Guard down)
+                    if (!isLooking) {
+                        shadowFigure.state = 'charging';
+                        shadowFigure.timer = FPS * 2.5; 
+                        playAngrySound(); 
+                    }
+                }
+            } else if (shadowFigure.state === 'fake_charge') { // Behavior 2
+                let angle = Math.atan2(player.y - shadowFigure.y, player.x - shadowFigure.x);
+                shadowFigure.x += Math.cos(angle) * (player.speed * 5);
+                shadowFigure.y += Math.sin(angle) * (player.speed * 5);
+                if (dist < 180) {
+                    shadowFigure.state = 'fake_stop';
+                }
+            } else if (shadowFigure.state === 'fake_stop') {
+                if (!isLooking) { // Waited for guard down
+                    shadowFigure.state = 'charging';
+                    shadowFigure.timer = FPS * 2.5;
+                    playAngrySound();
+                }
+            } else if (shadowFigure.state === 'retreating') { // Behavior 3
+                shadowFigure.timer--;
+                let angle = Math.atan2(player.y - shadowFigure.y, player.x - shadowFigure.x);
+                shadowFigure.x -= Math.cos(angle) * (player.speed * 0.5); // Move away slowly
+                shadowFigure.y -= Math.sin(angle) * (player.speed * 0.5);
+                if (shadowFigure.timer <= 0) {
+                    shadowFigure.state = 'charging';
+                    shadowFigure.timer = FPS * 1.5;
+                    playAngrySound();
+                }
+            } else if (shadowFigure.state === 'charging') {
+                shadowFigure.timer--;
+                let angle = Math.atan2(player.y - shadowFigure.y, player.x - shadowFigure.x);
+                // Behavior 3 is 10x sprint speed, others are 5x sprint speed
+                let speedMult = (shadowFigure.behavior === 3) ? 20 : 10;
+                shadowFigure.x += Math.cos(angle) * (player.speed * speedMult);
+                shadowFigure.y += Math.sin(angle) * (player.speed * speedMult);
+                
+                if (dist < player.radius + 20) {
+                    // CAUGHT BY SHADOW (Non-lethal Jump Scare, drains stamina)
+                    shadowFigure.active = false;
+                    hallucinationTimer = FPS * 1.5; 
+                    hallucinationType = 'shadow';
+                    playJumpscareSound(1.5, 0.4);
+                    player.stamina = 0; 
+                } else if (shadowFigure.timer <= 0) {
+                    shadowFigure.active = false; 
+                }
+            }
+        }
+
+        // --- RANDOM HALLUCINATION JUMPSCARES ---
+        if (!isFinaleChase) {
+            if (hallucinationTimer > 0) {
+                hallucinationTimer--;
+            } else if (Math.random() < 0.0003) { 
+                hallucinationTimer = Math.floor(40 + Math.random() * 30); 
+                hallucinationType = (difficulty === 'hard' && Math.random() > 0.5) ? 'spider' : 'monster';
+                playJumpscareSound(2.5, 0.4); 
+            }
+        }
+
+        if(thrownBrick) {
+            thrownBrick.x += Math.cos(thrownBrick.angle) * thrownBrick.speed; thrownBrick.y += Math.sin(thrownBrick.angle) * thrownBrick.speed; thrownBrick.dist += thrownBrick.speed;
+            
+            let hitMonster = false;
+            if (Math.hypot(thrownBrick.x - monster.x, thrownBrick.y - monster.y) < monster.radius + 15) {
+                hitMonster = true; monster.stunTimer = FPS * 4; playAngrySound();
+            }
+            if (difficulty === 'hard' && Math.hypot(thrownBrick.x - spider.x, thrownBrick.y - spider.y) < spider.radius + 15) {
+                hitMonster = true; spider.stunTimer = FPS * 4; playAngrySound();
+            }
+
+            if (hitMonster || isSolid(thrownBrick.x, thrownBrick.y) || thrownBrick.dist > 500) {
+                playClatterSound(); bricks[currentMap].push({x: thrownBrick.x, y: thrownBrick.y});
+                if(!hitMonster && difficulty === 'normal') { monster.wanderTarget = {x: thrownBrick.x, y: thrownBrick.y}; monster.state = 'wander'; }
+                thrownBrick = null;
+            }
+        }
+
+        if (difficulty === 'hard') {
+            if (showMinimap) {
+                mapBattery -= (100 / (5 * 60)); 
+                if (mapBattery <= 0) { showMinimap = false; document.getElementById('minimap-container').style.display = 'none'; }
+            } else { mapBattery += 0.2; }
+            mapBattery = Math.max(0, Math.min(100, mapBattery));
+            mapBatteryFill.style.width = mapBattery + '%'; mapBatteryFill.style.backgroundColor = mapBattery < 30 ? '#e74c3c' : '#2ecc71';
+        }
+
+        if (keys.i) birdEyeZoom = Math.min(3.0, birdEyeZoom + 0.03); 
+        if (keys.o) birdEyeZoom = Math.max(0.3, birdEyeZoom - 0.03); 
+
+        if (minigameCooldown > 0) minigameCooldown--;
+
+        const canSee = !player.isHiding && hasLineOfSight(monster.x, monster.y, player.x, player.y);
+        const spiderCanSee = !player.isHiding && difficulty === 'hard' && hasLineOfSight(spider.x, spider.y, player.x, player.y);
+
+        if (heartbeatLFO && audioCtx) {
+            if (isFinaleChase) {
+                heartbeatLFO.frequency.setTargetAtTime(4.0, audioCtx.currentTime, 0.5); // Intense fast heartbeat
+            } else {
+                let closest = Math.min(distToPlayer, difficulty === 'hard' ? distToSpider : 9999);
+                let intensity = Math.max(0.8, 3.5 - (closest / 150));
+                heartbeatLFO.frequency.setTargetAtTime(intensity, audioCtx.currentTime, 0.5);
+            }
+        }
+
+        let mx = 0, my = 0; let sx = 0, sy = 0;
+
+        if (monster.stunTimer > 0) {
+            monster.stunTimer--; monster.angle += (Math.random() - 0.5) * 0.8;
+        } else if (difficulty === 'hard' || isFinaleChase) {
+            let hardSpeed = isFinaleChase ? monster.speed : player.speed * 1.5; 
+            hardTrackerTimer++; if (hardTrackerTimer > 480) hardTrackerTimer = 0;
+            let isTracking = hardTrackerTimer < 300 || isFinaleChase; 
+
+            if (Math.random() < 0.005 && traps[currentMap].length < 15 && !isTileSolid(maps[currentMap][Math.floor(monster.y/TILE_SIZE)][Math.floor(monster.x/TILE_SIZE)]) && !isFinaleChase) {
+                traps[currentMap].push({x: monster.x, y: monster.y});
+            }
+
+            if (isTracking || canSee || player.isTrapped) {
+                monster.state = 'chase'; monster.pathTimer = (monster.pathTimer || 0) - 1;
+                if (!monster.pathNode || monster.pathTimer <= 0 || Math.hypot(monster.x - monster.pathNode.x, monster.y - monster.pathNode.y) < hardSpeed) { 
+                    monster.pathNode = getNextPathStep(monster.x, monster.y, player.x, player.y); monster.pathTimer = 15; 
+                }
+                if (monster.pathNode) { monster.angle = Math.atan2(monster.pathNode.y - monster.y, monster.pathNode.x - monster.x); mx = Math.cos(monster.angle) * hardSpeed; my = Math.sin(monster.angle) * hardSpeed; } 
+                else { monster.angle = Math.atan2(player.y - monster.y, player.x - monster.x); mx = Math.cos(monster.angle) * hardSpeed; my = Math.sin(monster.angle) * hardSpeed; }
+            } else {
+                if(!monster.wanderTarget) {
+                    let mc = Math.floor(monster.x/TILE_SIZE), mr = Math.floor(monster.y/TILE_SIZE);
+                    let neighbors = [[mc, mr-1], [mc, mr+1], [mc-1, mr], [mc+1, mr]].filter(n => n[0]>=0 && n[0]<MAP_COLS && n[1]>=0 && n[1]<MAP_ROWS && maps[currentMap][n[1]][n[0]] !== 1 && maps[currentMap][n[1]][n[0]] !== 4);
+                    if(neighbors.length > 0) { let c = neighbors[Math.floor(Math.random() * neighbors.length)]; monster.wanderTarget = { x: c[0] * TILE_SIZE + 30, y: c[1] * TILE_SIZE + 30 }; } else monster.angle += 0.1;
+                } else {
+                    if(Math.hypot(monster.wanderTarget.x - monster.x, monster.wanderTarget.y - monster.y) < hardSpeed) monster.wanderTarget = null;
+                    else { monster.angle = Math.atan2(monster.wanderTarget.y - monster.y, monster.wanderTarget.x - monster.x); mx = Math.cos(monster.angle) * hardSpeed * 0.7; my = Math.sin(monster.angle) * hardSpeed * 0.7; }
+                }
+            }
+        } 
+        else {
+            if (player.isHiding && minigameCooldown <= 0 && distToPlayer < 150 && (monster.state === 'chase' || Math.random() < 0.05)) {
+                gameState = 'minigame'; mgProgress = 50; mgPlayerPos = 10; mgTargetPos = 50;
+                document.getElementById('minigame-ui').style.display = 'block'; document.exitPointerLock(); return;
+            }
+
+            if (canSee && distToPlayer < 400) { monster.state = 'chase'; } else if (monster.state === 'chase' && !canSee) { monster.state = 'wander'; monster.wanderTarget = null; }
+
+            if(monster.state === 'chase') {
+                monster.pathTimer = (monster.pathTimer || 0) - 1;
+                if (!monster.pathNode || monster.pathTimer <= 0 || Math.hypot(monster.x - monster.pathNode.x, monster.y - monster.pathNode.y) < monster.speed) { 
+                    monster.pathNode = getNextPathStep(monster.x, monster.y, player.x, player.y); monster.pathTimer = 15;
+                }
+                if (monster.pathNode) { monster.angle = Math.atan2(monster.pathNode.y - monster.y, monster.pathNode.x - monster.x); mx = Math.cos(monster.angle) * monster.speed; my = Math.sin(monster.angle) * monster.speed; } 
+                else { monster.angle = Math.atan2(player.y - monster.y, player.x - monster.x); mx = Math.cos(monster.angle) * monster.speed; my = Math.sin(monster.angle) * monster.speed; }
+            } else {
+                if(!monster.wanderTarget) {
+                    let mc = Math.floor(monster.x/TILE_SIZE), mr = Math.floor(monster.y/TILE_SIZE);
+                    let neighbors = [[mc, mr-1], [mc, mr+1], [mc-1, mr], [mc+1, mr]].filter(n => n[0]>=0 && n[0]<MAP_COLS && n[1]>=0 && n[1]<MAP_ROWS && maps[currentMap][n[1]][n[0]] !== 1 && maps[currentMap][n[1]][n[0]] !== 4);
+                    if(neighbors.length > 0) { let c = neighbors[Math.floor(Math.random() * neighbors.length)]; monster.wanderTarget = { x: c[0] * TILE_SIZE + 30, y: c[1] * TILE_SIZE + 30 }; } else monster.angle += 0.1;
+                } else {
+                    if(Math.hypot(monster.wanderTarget.x - monster.x, monster.wanderTarget.y - monster.y) < monster.speed) monster.wanderTarget = null;
+                    else { monster.angle = Math.atan2(monster.wanderTarget.y - monster.y, monster.wanderTarget.x - monster.x); mx = Math.cos(monster.angle) * monster.speed * 0.7; my = Math.sin(monster.angle) * monster.speed * 0.7; }
+                }
+            }
+        }
+
+        if (difficulty === 'hard' && !isFinaleChase) {
+            if (spider.stunTimer > 0) {
+                spider.stunTimer--; spider.angle += (Math.random() - 0.5) * 0.8;
+            } else {
+                let spiderSpeed = player.speed * 1.6; 
+                if (player.isHiding || (!spiderCanSee && Math.random() < 0.02)) {
+                    spider.state = 'wander';
+                    if(!spider.wanderTarget) {
+                        let mc = Math.floor(spider.x/TILE_SIZE), mr = Math.floor(spider.y/TILE_SIZE);
+                        let neighbors = [[mc, mr-1], [mc, mr+1], [mc-1, mr], [mc+1, mr]].filter(n => n[0]>=0 && n[0]<MAP_COLS && n[1]>=0 && n[1]<MAP_ROWS && maps[currentMap][n[1]][n[0]] !== 1 && maps[currentMap][n[1]][n[0]] !== 4);
+                        if(neighbors.length > 0) { let c = neighbors[Math.floor(Math.random() * neighbors.length)]; spider.wanderTarget = { x: c[0] * TILE_SIZE + 30, y: c[1] * TILE_SIZE + 30 }; } else spider.angle += 0.1;
+                    } else {
+                        if(Math.hypot(spider.wanderTarget.x - spider.x, spider.wanderTarget.y - spider.y) < spiderSpeed) spider.wanderTarget = null;
+                        else { spider.angle = Math.atan2(spider.wanderTarget.y - spider.y, spider.wanderTarget.x - spider.x); sx = Math.cos(spider.angle) * spiderSpeed * 0.7; sy = Math.sin(spider.angle) * spiderSpeed * 0.7; }
+                    }
+                } else {
+                    spider.state = 'chase'; spider.pathTimer = (spider.pathTimer || 0) - 1;
+                    if (!spider.pathNode || spider.pathTimer <= 0 || Math.hypot(spider.x - spider.pathNode.x, spider.y - spider.pathNode.y) < spiderSpeed) {
+                        spider.pathNode = getNextPathStep(spider.x, spider.y, player.x, player.y); spider.pathTimer = 15;
+                    }
+                    if (spider.pathNode) { spider.angle = Math.atan2(spider.pathNode.y - spider.y, spider.pathNode.x - spider.x); sx = Math.cos(spider.angle) * spiderSpeed; sy = Math.sin(spider.angle) * spiderSpeed; } 
+                    else { spider.wanderTarget = null; spider.angle = Math.atan2(player.y - spider.y, player.x - spider.x); sx = Math.cos(spider.angle) * spiderSpeed; sy = Math.sin(spider.angle) * spiderSpeed; }
+                }
+            }
+        }
+
+        // Monsters ignore parkour obstacles so they don't get stuck during the chase
+        if(mx !== 0 || my !== 0) {
+            let mMovedX = false, mMovedY = false;
+            if(!isSolid(monster.x + mx + Math.sign(mx)*monster.radius, monster.y)) { monster.x += mx; mMovedX = true; } 
+            else { openDoorIfPresent(monster.x + Math.sign(mx)*(monster.radius+20), monster.y); }
+            if(!isSolid(monster.x, monster.y + my + Math.sign(my)*monster.radius)) { monster.y += my; mMovedY = true; } 
+            else { openDoorIfPresent(monster.x, monster.y + Math.sign(my)*(monster.radius+20)); }
+            if(!mMovedX && !mMovedY && !isFinaleChase) { monster.pathNode = null; monster.wanderTarget = null; } 
+        }
+
+        if (sx !== 0 || sy !== 0) {
+            let sMovedX = false, sMovedY = false;
+            if(!isSolid(spider.x + sx + Math.sign(sx)*spider.radius, spider.y)) { spider.x += sx; sMovedX = true; } 
+            else { openDoorIfPresent(spider.x + Math.sign(sx)*(spider.radius+20), spider.y); }
+            if(!isSolid(spider.x, spider.y + sy + Math.sign(sy)*spider.radius)) { spider.y += sy; sMovedY = true; } 
+            else { openDoorIfPresent(spider.x, spider.y + Math.sign(sy)*(spider.radius+20)); }
+            if(!sMovedX && !sMovedY) { spider.pathNode = null; spider.wanderTarget = null; } 
+        }
+
+        if(!player.isHiding) {
+            if (distToPlayer < player.radius + monster.radius && monster.state !== 'idle') {
+                gameState = 'jumpscare'; jumpscareTimer = FPS * 4; caughtBy = 'monster'; document.exitPointerLock(); playJumpscareSound();
+            } else if (difficulty === 'hard' && distToSpider < player.radius + spider.radius && !isFinaleChase) {
+                gameState = 'jumpscare'; jumpscareTimer = FPS * 4; caughtBy = 'spider'; document.exitPointerLock(); playJumpscareSound();
+            }
+        }
+
+        let interactMsg = "";
+        const pEl = document.getElementById('interact-prompt');
+        
+        if (isFinaleChase) {
+            // PARKOUR UI WARNINGS
+            let parkourPrompt = "";
+            for (let obs of obstacles[currentMap]) {
+                let d = obs.y - player.y;
+                if (d > 0 && d < 220) { // Look ahead for obstacles
+                    parkourPrompt = obs.type === 'hurdle' ? ">>> JUMP! [SPACE] <<<" : ">>> CROUCH! [C] <<<";
+                }
+            }
+            if (parkourPrompt) {
+                pEl.innerText = parkourPrompt; pEl.style.display = 'block'; pEl.style.color = '#ff3333'; pEl.style.fontSize = '35px';
+            } else {
+                pEl.style.display = 'none'; pEl.style.color = '#fff'; pEl.style.fontSize = '20px';
+            }
+        } else {
+            pEl.style.color = '#fff'; pEl.style.fontSize = '20px';
+            if (!player.isHiding && !player.isTrapped) {
+                const lookX = player.x + Math.cos(player.angle) * 45, lookY = player.y + Math.sin(player.angle) * 45;
+                const c = Math.floor(lookX / TILE_SIZE), r = Math.floor(lookY / TILE_SIZE);
+                
+                if(watchEntity.active && watchEntity.map === currentMap && Math.hypot(player.x - watchEntity.x, player.y - watchEntity.y) < 60) {
+                    interactMsg = "Press [E] to grab Teleport Watch";
+                }
+                
+                if(!interactMsg && c >= 0 && c < MAP_COLS && r >= 0 && r < MAP_ROWS) {
+                    if (maps[currentMap][r][c] === 2) interactMsg = activeDoors[currentMap][`${r},${c}`]?.amount < 0.5 ? "Press [E] to open door" : "Press [E] to close door";
+                    else if (maps[currentMap][r][c] === 4) interactMsg = "Press [E] to hide";
+                }
+                if(!interactMsg && !player.inventory) {
+                    for(let b of bricks[currentMap]) { if (Math.hypot(player.x - b.x, player.y - b.y) < 60) { interactMsg = "Press [E] to grab brick"; break; } }
+                }
+            }
+            pEl.innerText = interactMsg; pEl.style.display = interactMsg ? 'block' : 'none'; 
+        }
+    }
+
+    function draw() {
+        if (gameState === 'menu') { ctx.fillStyle = 'black'; ctx.fillRect(0, 0, canvas.width, canvas.height); return; }
+        
+        if (gameState === 'win') {
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#000000'; ctx.font = 'bold 80px Courier New'; ctx.textAlign = 'center';
+            ctx.fillText("YOU ESCAPED.", canvas.width/2, canvas.height/2);
+            return;
+        }
+
+        let camSource = player; 
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if(gameState === 'jumpscare') {
+            let bgGlow = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 50, canvas.width/2, canvas.height/2, 800);
+            
+            if (caughtBy === 'spider') {
+                bgGlow.addColorStop(0, '#5a0000'); bgGlow.addColorStop(1, '#000000');
+                ctx.fillStyle = bgGlow; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.save(); ctx.translate((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20);
+                drawSpiderFace(canvas.width/2, canvas.height/2 + 150, 2.0, true);
+                ctx.restore();
+            } else {
+                bgGlow.addColorStop(0, '#555555'); bgGlow.addColorStop(1, '#000000');
+                ctx.fillStyle = bgGlow; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.save(); ctx.translate((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20);
+                
+                ctx.fillStyle = '#010101'; 
+                ctx.beginPath(); ctx.ellipse(canvas.width/2, canvas.height/2 + 250, 200, 200, 0, 0, Math.PI*2); ctx.fill(); 
+                ctx.fillRect(canvas.width/2 - 200, canvas.height/2 + 200, 400, 600); 
+                
+                drawMonsterFace(canvas.width/2, canvas.height/2 + 150, 1.5, true); 
+                ctx.restore();
+            }
+
+            ctx.fillStyle = 'red'; ctx.font = 'bold 80px Courier New'; ctx.textAlign = 'center'; ctx.fillText("GAME OVER", canvas.width/2, canvas.height - 100);
+            return;
+        }
+
+        if (viewMode === 0 || viewMode === 2) {
+            const FOV = Math.PI / 3, STRIP_WIDTH = 4, NUM_RAYS = Math.ceil(canvas.width / STRIP_WIDTH);
+            camSource = (viewMode === 2) ? monster : player;
+            
+            let camZ = player.z + (player.isCrouching ? -25 : 0);
+            let horizon = (canvas.height/2 + ((viewMode === 0) ? player.pitch : 0)) + camZ * 4;
+
+            ctx.fillStyle = (viewMode === 2 || isFinaleChase) ? '#220000' : '#222'; ctx.fillRect(0, 0, canvas.width, Math.max(0, horizon)); 
+            ctx.fillStyle = (viewMode === 2 || isFinaleChase) ? '#110000' : '#333'; ctx.fillRect(0, Math.max(0, horizon), canvas.width, canvas.height); 
+            let zBuffer = [];
+            
+            let maxLightDist = 650; 
+            if (difficulty === 'hard' && viewMode === 0) { maxLightDist = flashlightOn ? 450 : 100; }
+            if (isFinaleChase) { maxLightDist = 1200; } // HUGE LIGHT DISTANCE FOR CHASE
+
+            for(let i = 0; i < NUM_RAYS; i++) {
+                let rayAngle = camSource.angle - FOV/2 + (i / NUM_RAYS) * FOV, distanceToWall = 0, hitWall = false, eyeX = Math.cos(rayAngle), eyeY = Math.sin(rayAngle), hitTile = 0, hitR = 0, hitC = 0;
+                while(!hitWall && distanceToWall < 1500) { // Bumped up for the chase visibility
+                    distanceToWall += 2; let testX = camSource.x + eyeX * distanceToWall, testY = camSource.y + eyeY * distanceToWall;
+                    let c = Math.floor(testX / TILE_SIZE), r = Math.floor(testY / TILE_SIZE);
+                    if (c < 0 || c >= MAP_COLS || r < 0 || r >= MAP_ROWS) { hitWall = true; distanceToWall = 1500; hitTile = 1; } 
+                    else if (isTileSolid(maps[currentMap][r][c], r, c)) {
+                        if (camSource === player && player.isHiding && maps[currentMap][r][c] === 4 && c === Math.floor(player.x / TILE_SIZE) && r === Math.floor(player.y / TILE_SIZE)) { } 
+                        else { hitWall = true; hitTile = maps[currentMap][r][c]; hitR = r; hitC = c; }
+                    }
+                }
+                let correctedDist = distanceToWall * Math.cos(rayAngle - camSource.angle); zBuffer[i] = Math.max(0.1, correctedDist);
+                let wallHeight = (TILE_SIZE / Math.max(0.1, correctedDist)) * (canvas.width / 1.5);
+                let ceiling = horizon - wallHeight/2, visibleHeight = wallHeight;
+                if (hitTile === 2) visibleHeight = wallHeight * (1 - (activeDoors[currentMap][`${hitR},${hitC}`]?.amount || 0));
+                
+                if (visibleHeight > 0) {
+                    let lightAlpha = Math.max(0.1, 1 - (correctedDist / maxLightDist)); ctx.globalAlpha = lightAlpha; 
+                    if (hitTile === 5 || hitTile === 6) {
+                        let stepCount = 10; let stepH = visibleHeight / stepCount;
+                        for (let s = 0; s < stepCount; s++) {
+                            let color1 = hitTile === 5 ? '#3a4a3a' : '#3a3a4a'; let color2 = hitTile === 5 ? '#1e2b1e' : '#1e1e2b';
+                            ctx.fillStyle = (s % 2 === 0) ? color1 : color2; ctx.fillRect(i * STRIP_WIDTH, ceiling + s*stepH, STRIP_WIDTH, stepH);
+                        }
+                    } else if (hitTile === 7) { 
+                        ctx.fillStyle = '#ffffff'; 
+                        ctx.shadowBlur = 20; ctx.shadowColor = '#ffffff';
+                        ctx.fillRect(i * STRIP_WIDTH, ceiling, STRIP_WIDTH, visibleHeight);
+                        ctx.shadowBlur = 0;
+                    } else {
+                        if(hitTile === 1) ctx.fillStyle = (viewMode === 2) ? '#662222' : '#444'; 
+                        else if(hitTile === 2) ctx.fillStyle = (viewMode === 2) ? '#883333' : '#6b3e1b'; 
+                        else if(hitTile === 4) ctx.fillStyle = (viewMode === 2) ? '#441111' : '#1e2b38'; 
+                        ctx.fillRect(i * STRIP_WIDTH, ceiling, STRIP_WIDTH, visibleHeight);
+                    }
+                    ctx.globalAlpha = 1.0; ctx.strokeStyle = `rgba(0,0,0,${lightAlpha * 0.4})`; ctx.lineWidth = 1; ctx.strokeRect(i * STRIP_WIDTH, ceiling, STRIP_WIDTH, visibleHeight);
+                }
+            }
+
+            let entities = [];
+            for(let b of balls) {
+                if(b.active && b.map === currentMap) entities.push({x: b.x, y: b.y, r: b.radius, color: 'yellow', type: 'ball'});
+            }
+            if(watchEntity.active && watchEntity.map === currentMap) entities.push({x: watchEntity.x, y: watchEntity.y, r: 15, type: 'watch'});
+
+            for(let b of bricks[currentMap]) entities.push({x: b.x, y: b.y, r: 10, type: 'brick'});
+            if(thrownBrick) entities.push({x: thrownBrick.x, y: thrownBrick.y, r: 10, type: 'brick'});
+            for(let t of traps[currentMap]) entities.push({x: t.x, y: t.y, r: 15, type: 'trap'});
+            
+            for(let obs of obstacles[currentMap]) {
+                entities.push({x: obs.x, y: obs.y, r: 30, type: obs.type});
+            }
+
+            if(viewMode === 0) {
+                entities.push({x: monster.x, y: monster.y, r: monster.radius, color: '#111', type: 'monster'});
+                if (difficulty === 'hard' && !isFinaleChase) entities.push({x: spider.x, y: spider.y, r: spider.radius, color: '#fff', type: 'spider'});
+                if (shadowFigure.active) entities.push({x: shadowFigure.x, y: shadowFigure.y, r: 20, type: 'shadow'});
+            }
+            else if(viewMode === 2 && !player.isHiding) entities.push({x: player.x, y: player.y, r: player.radius, color: '#3498db', type: 'player'});
+            
+            entities.sort((a,b) => Math.hypot(camSource.x - b.x, camSource.y - b.y) - Math.hypot(camSource.x - a.x, camSource.y - a.y));
+
+            for(let ent of entities) {
+                let dx = ent.x - camSource.x, dy = ent.y - camSource.y, dist = Math.hypot(dx, dy), objAngle = Math.atan2(dy, dx) - camSource.angle;
+                while(objAngle < -Math.PI) objAngle += 2*Math.PI; while(objAngle > Math.PI) objAngle -= 2*Math.PI;
+                
+                if (viewMode === 0 && dist > maxLightDist) continue;
+
+                if (Math.abs(objAngle) < FOV / 1.5) { 
+                    let objScreenX = (0.5 * (objAngle / (FOV/2)) + 0.5) * canvas.width;
+                    let objScreenSize = (ent.r * 2 / dist) * (canvas.width / 1.5);
+                    let stripIdx = Math.floor(objScreenX / STRIP_WIDTH);
+                    if(stripIdx >= 0 && stripIdx < NUM_RAYS && zBuffer[stripIdx] > dist) {
+                        
+                        let entAlpha = viewMode === 0 ? Math.max(0, 1 - (dist / maxLightDist)) : 1.0;
+                        ctx.globalAlpha = entAlpha;
+
+                        if (ent.type === 'ball' || ent.type === 'player') {
+                            ctx.fillStyle = ent.color; ctx.beginPath(); ctx.arc(objScreenX, horizon + objScreenSize/4, objScreenSize/2, 0, Math.PI*2);
+                            if (ent.type === 'ball') { ctx.shadowBlur = 25; ctx.shadowColor = 'yellow'; } ctx.fill(); ctx.shadowBlur = 0;
+                        } else if (ent.type === 'watch') {
+                            ctx.fillStyle = 'cyan';
+                            ctx.shadowBlur = 20; ctx.shadowColor = 'cyan';
+                            ctx.beginPath(); ctx.arc(objScreenX, horizon + objScreenSize*0.5, objScreenSize*0.3, 0, Math.PI*2); ctx.fill();
+                            ctx.shadowBlur = 0;
+                        } else if (ent.type === 'brick') {
+                            ctx.fillStyle = '#b22222'; ctx.fillRect(objScreenX - objScreenSize*0.4, horizon + objScreenSize*0.2, objScreenSize*0.8, objScreenSize*0.4);
+                        } else if (ent.type === 'trap') {
+                            ctx.fillStyle = '#555'; ctx.beginPath(); ctx.ellipse(objScreenX, horizon + objScreenSize*1.5, objScreenSize*1.5, objScreenSize*0.5, 0, 0, Math.PI*2); ctx.fill();
+                            ctx.fillStyle = '#333'; ctx.beginPath(); ctx.ellipse(objScreenX, horizon + objScreenSize*1.5, objScreenSize*1.2, objScreenSize*0.3, 0, 0, Math.PI*2); ctx.fill();
+                            ctx.fillStyle = '#8b0000'; ctx.beginPath(); ctx.arc(objScreenX, horizon + objScreenSize*1.5, objScreenSize*0.2, 0, Math.PI*2); ctx.fill();
+                        } else if (ent.type === 'hurdle') {
+                            ctx.fillStyle = '#6b0000'; 
+                            let w = objScreenSize * 6; 
+                            let h = objScreenSize * 1.0;
+                            ctx.fillRect(objScreenX - w/2, horizon + objScreenSize*0.5, w, h);
+                            ctx.beginPath();
+                            for(let i=0; i<10; i++) {
+                                ctx.moveTo(objScreenX - w/2 + i*(w/10), horizon + objScreenSize*0.5);
+                                ctx.lineTo(objScreenX - w/2 + i*(w/10) + (w/20), horizon - objScreenSize*0.2); 
+                                ctx.lineTo(objScreenX - w/2 + (i+1)*(w/10), horizon + objScreenSize*0.5);
+                            }
+                            ctx.fill();
+                        } else if (ent.type === 'overhang') {
+                            ctx.fillStyle = '#0a2a0a'; 
+                            let w = objScreenSize * 6;
+                            let h = objScreenSize * 2.0;
+                            ctx.fillRect(objScreenX - w/2, horizon - objScreenSize*2.5, w, h);
+                            ctx.beginPath();
+                            for(let i=0; i<8; i++) {
+                                ctx.moveTo(objScreenX - w/2 + i*(w/8), horizon - objScreenSize*0.5);
+                                ctx.lineTo(objScreenX - w/2 + i*(w/8) + (w/16), horizon + objScreenSize*0.4); 
+                                ctx.lineTo(objScreenX - w/2 + (i+1)*(w/8), horizon - objScreenSize*0.5);
+                            }
+                            ctx.fill();
+                        } else if (ent.type === 'shadow') {
+                            let shH = objScreenSize * 6.0, shW = objScreenSize * 1.2, shY = horizon - objScreenSize * 3.5;
+                            let jitterX = (Math.random()-0.5) * (shadowFigure.state === 'charging' ? 20 : 2);
+                            let jitterY = (Math.random()-0.5) * (shadowFigure.state === 'charging' ? 20 : 2);
+                            
+                            let bx = objScreenX + jitterX;
+                            
+                            // Humanoid Body
+                            ctx.fillStyle = '#050505'; 
+                            ctx.beginPath(); ctx.ellipse(bx, shY + shH*0.4 + jitterY, shW*0.5, shH*0.3, 0, 0, Math.PI*2); ctx.fill(); 
+                            
+                            ctx.strokeStyle = '#050505'; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.lineWidth = objScreenSize * 0.3;
+                            let stride = shadowFigure.state === 'charging' ? Math.sin(Date.now()/40) * objScreenSize * 2.0 : 0;
+                            let flail = shadowFigure.state === 'charging' ? Math.cos(Date.now()/40) * objScreenSize * 2.5 : 0;
+
+                            // Legs & Feet
+                            ctx.beginPath(); ctx.moveTo(bx - shW*0.2, shY + shH*0.6 + jitterY);
+                            ctx.lineTo(bx - shW*0.3 + stride*0.5, shY + shH*0.85 + jitterY);
+                            ctx.lineTo(bx - shW*0.4 + stride, shY + shH*1.1 + jitterY); ctx.stroke();
+                            ctx.beginPath(); ctx.ellipse(bx - shW*0.4 + stride + objScreenSize*0.1, shY + shH*1.1 + jitterY, objScreenSize*0.3, objScreenSize*0.15, 0, 0, Math.PI*2); ctx.fill();
+                            
+                            ctx.beginPath(); ctx.moveTo(bx + shW*0.2, shY + shH*0.6 + jitterY);
+                            ctx.lineTo(bx + shW*0.3 - stride*0.5, shY + shH*0.85 + jitterY);
+                            ctx.lineTo(bx + shW*0.4 - stride, shY + shH*1.1 + jitterY); ctx.stroke();
+                            ctx.beginPath(); ctx.ellipse(bx + shW*0.4 - stride + objScreenSize*0.1, shY + shH*1.1 + jitterY, objScreenSize*0.3, objScreenSize*0.15, 0, 0, Math.PI*2); ctx.fill();
+
+                            // Arms & Hands
+                            ctx.beginPath(); ctx.moveTo(bx - shW*0.4, shY + shH*0.2 + jitterY);
+                            ctx.lineTo(bx - shW*0.8 - flail*0.5, shY + shH*0.45 + jitterY);
+                            ctx.lineTo(bx - shW*0.9 - flail, shY + shH*0.7 + jitterY); ctx.stroke();
+                            ctx.beginPath(); ctx.arc(bx - shW*0.9 - flail, shY + shH*0.7 + jitterY, objScreenSize*0.25, 0, Math.PI*2); ctx.fill();
+                            
+                            ctx.beginPath(); ctx.moveTo(bx + shW*0.4, shY + shH*0.2 + jitterY);
+                            ctx.lineTo(bx + shW*0.8 + flail*0.5, shY + shH*0.45 + jitterY);
+                            ctx.lineTo(bx + shW*0.9 + flail, shY + shH*0.7 + jitterY); ctx.stroke();
+                            ctx.beginPath(); ctx.arc(bx + shW*0.9 + flail, shY + shH*0.7 + jitterY, objScreenSize*0.25, 0, Math.PI*2); ctx.fill();
+
+                            // Head
+                            ctx.beginPath(); ctx.ellipse(bx, shY + shH*0.05 + jitterY, shW*0.4, shH*0.12, 0, 0, Math.PI*2); ctx.fill();
+                            
+                            // Glowing Eyes
+                            ctx.fillStyle = '#ffffff';
+                            ctx.shadowBlur = 15; ctx.shadowColor = '#ffffff';
+                            ctx.beginPath(); ctx.ellipse(bx - shW*0.15, shY + jitterY, objScreenSize*0.15, objScreenSize*0.05, 0.2, 0, Math.PI*2); ctx.fill();
+                            ctx.beginPath(); ctx.ellipse(bx + shW*0.15, shY + jitterY, objScreenSize*0.15, objScreenSize*0.05, -0.2, 0, Math.PI*2); ctx.fill();
+                            
+                            if (shadowFigure.state === 'charging') {
+                                 ctx.fillStyle = '#111';
+                                 ctx.shadowBlur = 0;
+                                 ctx.beginPath(); ctx.ellipse(bx, shY + shH*0.08 + jitterY, objScreenSize*0.2, objScreenSize*0.3, 0, 0, Math.PI*2); ctx.fill();
+                            }
+                            ctx.shadowBlur = 0;
+                        } else if (ent.type === 'spider') {
+                            let cy = horizon + Math.sin(Date.now()/150)*objScreenSize*0.1;
+                            ctx.strokeStyle = '#a69090'; ctx.lineWidth = objScreenSize * 0.15; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                            
+                            for(let i of [-1, 1]) {
+                                ctx.beginPath(); ctx.moveTo(objScreenX + i*objScreenSize*0.3, cy); ctx.lineTo(objScreenX + i*objScreenSize*1.4, cy + objScreenSize*0.6); ctx.lineTo(objScreenX + i*objScreenSize*0.9, horizon + objScreenSize*1.6); ctx.stroke();
+                                ctx.beginPath(); ctx.moveTo(objScreenX + i*objScreenSize*0.5, cy - objScreenSize*0.2); ctx.lineTo(objScreenX + i*objScreenSize*1.6, cy - objScreenSize*0.6); ctx.lineTo(objScreenX + i*objScreenSize*1.4, horizon + objScreenSize*1.9); ctx.stroke();
+                            }
+                            
+                            ctx.fillStyle = '#9e8b8b'; ctx.beginPath(); ctx.ellipse(objScreenX, cy - objScreenSize*0.2, objScreenSize*0.8, objScreenSize, 0, 0, Math.PI*2); ctx.fill();
+                            drawSpiderFace(objScreenX, cy - objScreenSize*0.7, objScreenSize/160, false);
+                        } else if(ent.type === 'monster') {
+                            let headH = objScreenSize * 1.0, headW = objScreenSize * 0.9, headY = horizon - objScreenSize * 0.6;
+                            
+                            ctx.fillStyle = '#010101'; 
+                            let torsoW = headW * 2.2; 
+                            let torsoH = objScreenSize * 2.5; 
+                            
+                            ctx.beginPath(); ctx.ellipse(objScreenX, headY + headH*0.8, torsoW/2, torsoW/3, 0, 0, Math.PI*2); ctx.fill(); 
+                            ctx.fillRect(objScreenX - torsoW/2, headY + headH*0.8, torsoW, torsoH);
+                            
+                            let legW = headW * 0.4;
+                            let legH = objScreenSize * 2.0;
+                            ctx.fillRect(objScreenX - torsoW*0.3, headY + headH*0.8 + torsoH - objScreenSize*0.2, legW, legH);
+                            ctx.fillRect(objScreenX + torsoW*0.3 - legW, headY + headH*0.8 + torsoH - objScreenSize*0.2, legW, legH);
+                            
+                            let armW = headW * 0.25;
+                            let armH = objScreenSize * 2.8;
+                            
+                            ctx.save(); ctx.translate(objScreenX - torsoW/2, headY + headH*0.7); ctx.rotate(0.2 + (Math.random()-0.5)*0.05); 
+                            ctx.fillRect(-armW, 0, armW, armH);
+                            for(let i=-2; i<=2; i++) { 
+                                ctx.save(); ctx.translate(-armW/2, armH); ctx.rotate(i*0.3); 
+                                ctx.fillRect(-armW/4, 0, armW/2, armH*0.15); 
+                                ctx.restore(); 
+                            }
+                            ctx.restore();
+                            
+                            ctx.save(); ctx.translate(objScreenX + torsoW/2, headY + headH*0.7); ctx.rotate(-0.2 + (Math.random()-0.5)*0.05);
+                            ctx.fillRect(0, 0, armW, armH);
+                            for(let i=-2; i<=2; i++) { 
+                                ctx.save(); ctx.translate(armW/2, armH); ctx.rotate(i*0.3); 
+                                ctx.fillRect(-armW/4, 0, armW/2, armH*0.15); 
+                                ctx.restore(); 
+                            }
+                            ctx.restore();
+
+                            ctx.save(); ctx.translate(objScreenX, headY); ctx.rotate(0.10); 
+                            drawMonsterFace(0, headH*1.5, 1, false);
+                            ctx.restore(); 
+                            
+                            ctx.fillStyle = `rgba(200, 200, 200, ${Math.random() * 0.8})`;
+                            for(let g=0; g<6; g++) { ctx.fillRect(objScreenX - headW*1.5 + Math.random()*headW*3, horizon - objScreenSize*0.5 + Math.random()*objScreenSize*1.5, Math.random()*(headW), Math.max(2, Math.random()*15)); }
+                        }
+                        
+                        ctx.globalAlpha = 1.0; 
+                    }
+                }
+            } 
+
+            if (viewMode === 0) {
+                let radius = maxLightDist;
+                let flashlight = ctx.createRadialGradient(canvas.width/2, canvas.height/2, radius*0.1, canvas.width/2, canvas.height/2, radius);
+                
+                // ADD RED GLOW DURING THE CHASE
+                if (isFinaleChase) {
+                    flashlight.addColorStop(0, 'rgba(50, 0, 0, 0)');
+                } else {
+                    flashlight.addColorStop(0, 'rgba(0,0,0,0)');
+                }
+                
+                flashlight.addColorStop(1, 'rgba(0,0,0,0.98)');
+                ctx.fillStyle = flashlight; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            if(player.isHiding && viewMode === 0) {
+                ctx.fillStyle = '#2c1e16'; ctx.fillRect(0, 0, canvas.width/2 - 15, canvas.height); ctx.fillRect(canvas.width/2 + 15, 0, canvas.width/2 - 15, canvas.height);
+                ctx.strokeStyle = '#110a06'; ctx.lineWidth = 4; ctx.strokeRect(20, 20, canvas.width/2 - 55, canvas.height - 40); ctx.strokeRect(canvas.width/2 + 35, 20, canvas.width/2 - 55, canvas.height - 40);
+            }
+        } else {
+            ctx.save(); ctx.translate(canvas.width / 2, canvas.height / 2); ctx.scale(birdEyeZoom, birdEyeZoom); ctx.translate(-player.x, -player.y); drawMap(ctx, 1, 1, true); drawEntities(ctx, 1, 1); 
+            ctx.globalCompositeOperation = 'destination-in'; let gradient = ctx.createRadialGradient(player.x, player.y, 40, player.x, player.y, difficulty === 'hard' ? 200 : 500);
+            gradient.addColorStop(0, 'rgba(0,0,0,1)'); gradient.addColorStop(0.7, 'rgba(0,0,0,0.8)'); gradient.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = gradient; ctx.beginPath(); ctx.moveTo(player.x, player.y); ctx.arc(player.x, player.y, difficulty === 'hard' ? 200 : 500, player.angle - Math.PI/2.5, player.angle + Math.PI/2.5); ctx.fill();
+            ctx.globalCompositeOperation = 'source-over'; ctx.restore();
+        }
+        
+        // --- RENDER RANDOM HALLUCINATION JUMPSCARES (Including Non-lethal Shadow Scare) ---
+        if (gameState === 'play' && hallucinationTimer > 0 && !isFinaleChase) {
+            ctx.save();
+            ctx.translate(canvas.width/2, canvas.height/2);
+            let z = 2 + Math.random() * 3; 
+            ctx.scale(z, z);
+            ctx.translate(-canvas.width/2 + (Math.random()-0.5)*100, -canvas.height/2 + (Math.random()-0.5)*100); 
+            
+            if (hallucinationType === 'spider') {
+                drawSpiderFace(canvas.width/2, canvas.height/2 + 50, 2, true);
+            } else if (hallucinationType === 'shadow') {
+                drawShadowJumpscare(canvas.width/2, canvas.height/2 - 150, 150);
+            } else {
+                drawMonsterFace(canvas.width/2, canvas.height/2 + 100, 1.5, true);
+            }
+            
+            ctx.restore();
+            
+            ctx.fillStyle = `rgba(200, 0, 0, 0.3)`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            for(let i=0; i<15; i++) {
+                ctx.fillRect(Math.random()*canvas.width, Math.random()*canvas.height, Math.random()*canvas.width, Math.random()*15);
+            }
+        }
+
+        if (!isFinaleChase) drawMinimap();
+
+        if (gameState === 'transition') {
+            let fadeAlpha = 0; 
+            if (transitionType.startsWith('teleport')) {
+                if (transitionTimer > 30) fadeAlpha = 1 - ((transitionTimer - 30) / 30); else fadeAlpha = transitionTimer / 30;
+                ctx.fillStyle = `rgba(0, 255, 255, ${fadeAlpha * 0.5})`; ctx.fillRect(0, 0, canvas.width, canvas.height); // Cyan flash
+                ctx.fillStyle = `rgba(255, 255, 255, ${fadeAlpha})`; ctx.font = 'bold 40px Courier New'; ctx.textAlign = 'center'; 
+                ctx.fillText("TELEPORTING...", canvas.width/2, canvas.height/2);
+            } else {
+                if (transitionTimer > 60) fadeAlpha = 1 - ((transitionTimer - 60) / 60); else fadeAlpha = transitionTimer / 60;
+                ctx.fillStyle = `rgba(0, 0, 0, ${fadeAlpha})`; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = `rgba(255, 255, 255, ${fadeAlpha})`; ctx.font = 'bold 40px Courier New'; ctx.textAlign = 'center'; 
+                if (transitionType === 'up') ctx.fillText("CLIMBING STAIRS...", canvas.width/2, canvas.height/2);
+                else if (transitionType === 'down') ctx.fillText("DESCENDING STAIRS...", canvas.width/2, canvas.height/2);
+                else if (transitionType === 'chase') ctx.fillText("IT'S RIGHT BEHIND YOU.", canvas.width/2, canvas.height/2);
+            }
+        }
+    }
+
+    function loop() { update(); draw(); requestAnimationFrame(loop); }
+    loop();
+</script>
+</body>
+</html>
